@@ -17,8 +17,7 @@ TOBE_PATH    = "cb_tobe_sample.shp"
 COMMON_TILE  = "CartoDB positron"
 
 # 컬러 팔레트
-palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-           "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
+palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
 # 데이터 로드 (WGS84)
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
@@ -32,7 +31,7 @@ selected_id = st.selectbox("경로 선택 (sorting_id)", common_ids)
 asis_grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
 tobe_grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
 
-# KPI 계산
+# KPI 계산 (TOBE만 예시)
 c_grp         = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
 tobe_time     = f"{c_grp['elapsed_mi'].iloc[-1]} 분" if not c_grp.empty and "elapsed_mi" in c_grp.columns else "--"
 tobe_dist     = round(tobe_grp["drive_dist"].sum(), 2) if "drive_dist" in tobe_grp.columns else 0
@@ -57,6 +56,13 @@ st.markdown("---")
 def render_map(m, height=600):
     html(m.get_root().render(), height=height)
 
+params = {
+    "geometries": "geojson",
+    "overview":   "full",
+    "steps":      "true",
+    "access_token": MAPBOX_TOKEN
+}
+
 col1, col2 = st.columns(2, gap="large")
 
 # ── AS-IS 경로
@@ -77,26 +83,29 @@ with col1:
             c = crow.geometry
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
-            # 시작 C 마커: 숫자
             folium.map.Marker(
                 [c.y, c.x],
                 icon=DivIcon(
                     icon_size=(30,30),
                     icon_anchor=(15,15),
-                    html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
+                    html=f'<div style="font-size:14px; color:#fff; background:{color}; '
+                         f'border-radius:50%; width:30px; height:30px; text-align:center; '
+                         f'line-height:30px;">{idx+1}</div>'
                 )
             ).add_to(fg)
-            # 도착 D 마커: 동일 색깔 목적지 아이콘
             folium.Marker(
                 [d.y, d.x],
                 icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)
             ).add_to(fg)
 
-            # Mapbox 호출: full overview만 사용
-            res = requests.get(
-                f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}",
-                params={"geometries":"geojson","overview":"full","access_token":MAPBOX_TOKEN}
+            url = (
+                f"https://api.mapbox.com/directions/v5/mapbox/driving-traffic/"
+                f"{c.x},{c.y};{d.x},{d.y}"
             )
+            res = requests.get(url, params=params)
+            st.write("ASIS status:", res.status_code)
+            st.write(res.json())
+
             data = res.json()
             routes = data.get("routes") or []
             if routes:
@@ -111,6 +120,7 @@ with col1:
 
         fg.add_to(m)
         render_map(m)
+
     except Exception as e:
         st.error(f"[ASIS 에러] {e}")
 
@@ -135,7 +145,9 @@ with col2:
                 icon=DivIcon(
                     icon_size=(30,30),
                     icon_anchor=(15,15),
-                    html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{i+1}</div>'
+                    html=f'<div style="font-size:14px; color:#fff; background:{color}; '
+                         f'border-radius:50%; width:30px; height:30px; text-align:center; '
+                         f'line-height:30px;">{i+1}</div>'
                 )
             ).add_to(fg)
 
@@ -146,14 +158,20 @@ with col2:
 
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
-            end = (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1]) if i < len(c_pts)-1 else (d_pt.y, d_pt.x)
+            end = (
+                (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1])
+                if i < len(c_pts)-1 else (d_pt.y, d_pt.x)
+            )
             color = palette[i % len(palette)]
 
-            # Mapbox 호출: full overview만 사용
-            res = requests.get(
-                f"https://api.mapbox.com/directions/v5/mapbox/driving/{start[1]},{start[0]};{end[1]},{end[0]}",
-                params={"geometries":"geojson","overview":"full","access_token":MAPBOX_TOKEN}
+            url = (
+                f"https://api.mapbox.com/directions/v5/mapbox/driving-traffic/"
+                f"{start[1]},{start[0]};{end[1]},{end[0]}"
             )
+            res = requests.get(url, params=params)
+            st.write("TOBE status:", res.status_code)
+            st.write(res.json())
+
             data = res.json()
             routes = data.get("routes") or []
             if routes:
@@ -164,10 +182,14 @@ with col2:
                 line = LineString([(start[1], start[0]), (end[1], end[0])])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
-            tooltip_text = f"{i+1}: C→{'C'+str(c_pts.stop_seq.iloc[i+1]) if i < len(c_pts)-1 else 'D'}"
+            tooltip_text = (
+                f"{i+1}: C→"
+                f"{'C'+str(c_pts.stop_seq.iloc[i+1]) if i < len(c_pts)-1 else 'D'}"
+            )
             GeoJson(line, style_function=lambda _, s=style: s, tooltip=tooltip_text).add_to(fg)
 
         fg.add_to(m)
         render_map(m)
+
     except Exception as e:
         st.error(f"[TOBE 에러] {e}")
