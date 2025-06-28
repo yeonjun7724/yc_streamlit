@@ -11,7 +11,7 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 
 # 상수
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
+MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1ZiIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH    = "cb_asis_sample.shp"
 TOBE_PATH    = "cb_tobe_sample.shp"
 COMMON_TILE  = "CartoDB positron"
@@ -34,24 +34,26 @@ selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 asis_grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
 tobe_grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
 
-# TOBE 소요시간: 마지막 C 지점의 elapsed_mi
-c_grp = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
+# TOBE KPI 계산
+# 1) TOBE 소요시간: 마지막 C 지점의 elapsed_mi
+c_grp     = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
 tobe_time = f"{c_grp['elapsed_mi'].iloc[-1]} 분" if not c_grp.empty and "elapsed_mi" in c_grp.columns else "--"
-
-# TOBE 최단거리: drive_dist 합계
+# 2) TOBE 최단거리: drive_dist 합계
 tobe_dist = round(tobe_grp["drive_dist"].sum(), 2) if "drive_dist" in tobe_grp.columns else 0
+# 3) TOBE 물류비: 최단거리 * 5000
+tobe_cost = int(tobe_dist * 5000)
 
 # KPI 표시
 asis_cols = st.columns(4)
 asis_cols[0].metric("ASIS 소요시간",   "--",                help="기존 경로의 예상 소요시간")
 asis_cols[1].metric("ASIS 물류비",     "--",                help="기존 경로의 예상 물류비용")
 asis_cols[2].metric("ASIS 탄소배출량", "--",                help="기존 경로의 예상 CO₂ 배출량")
-# asis_cols[3] left unused
+asis_cols[3].metric("ASIS 최단거리",   "--",                help="기존 경로의 실제 최단거리 합계")
 
 tobe_cols = st.columns(4)
 tobe_cols[0].metric("TOBE 소요시간",   tobe_time,           help="개선 경로의 실제 소요시간 (마지막 C의 elapsed_mi)")
 tobe_cols[1].metric("TOBE 최단거리",   f"{tobe_dist} km",   help="개선 경로의 실제 최단거리 합계")
-tobe_cols[2].metric("TOBE 물류비",     "--",                help="개선 경로의 예상 물류비용")
+tobe_cols[2].metric("TOBE 물류비",     f"{tobe_cost:,} 원", help="개선 경로의 예상 물류비용 (최단거리×5,000원)")
 tobe_cols[3].metric("TOBE 탄소배출량", "--",                help="개선 경로의 예상 CO₂ 배출량")
 
 st.markdown("---")
@@ -115,7 +117,7 @@ with col1:
 
 # TO-BE 맵
 with col2:
-    st.markdown("#### TOBE ➡ 개선 경로")
+    st.markdown("#### TO-BE ➡ 개선 경로")
     try:
         c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
         d     = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
