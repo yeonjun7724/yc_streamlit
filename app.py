@@ -58,57 +58,57 @@ def render_map(m, height=600):
 
 # 공통 Mapbox 파라미터
 params = {
-    "geometries": "geojson",
-    "overview":   "full",
-    "steps":      "true",
-    "access_token": MAPBOX_TOKEN
+    "geometries":    "geojson",
+    "overview":      "full",
+    "steps":         "true",
+    "access_token":  MAPBOX_TOKEN
 }
 
 col1, col2 = st.columns(2, gap="large")
 
-# ── AS-IS 경로
+# ── AS-IS 경로 (C→D 페어 매칭)
 with col1:
     st.markdown("#### 현재")
     try:
         m = Map(
             location=[asis_grp.geometry.y.mean(), asis_grp.geometry.x.mean()],
-            zoom_start=12, tiles=COMMON_TILE
+            zoom_start=12,
+            tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="ASIS")
 
-        c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
-        d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
+        c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index(drop=True)
+        d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index(drop=True)
 
         for idx, crow in c_pts.iterrows():
             color = palette[idx % len(palette)]
             c = crow.geometry
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
-            # 시작 마커 (숫자)
             folium.map.Marker(
                 [c.y, c.x],
                 icon=DivIcon(
-                    icon_size=(30,30),
-                    icon_anchor=(15,15),
-                    html=f'<div style="font-size:14px; color:#fff; background:{color}; '
-                         f'border-radius:50%; width:30px; height:30px; text-align:center; '
-                         f'line-height:30px;">{idx+1}</div>'
+                    icon_size=(30, 30),
+                    icon_anchor=(15, 15),
+                    html=(
+                        f'<div style="font-size:14px; color:#fff; background:{color}; '
+                        'border-radius:50%; width:30px; height:30px; text-align:center; '
+                        f'line-height:30px;">{idx+1}</div>'
+                    )
                 )
             ).add_to(fg)
-            # 도착 마커 (flag)
+
             folium.Marker(
                 [d.y, d.x],
                 icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)
             ).add_to(fg)
 
-            # Mapbox 호출
             url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
                 f"{c.x},{c.y};{d.x},{d.y}"
             )
             res = requests.get(url, params=params)
-            data = res.json()
-            routes = data.get("routes") or []
+            routes = res.json().get("routes") or []
 
             if routes:
                 coords = routes[0]["geometry"]["coordinates"]
@@ -132,35 +132,35 @@ with col2:
     try:
         m = Map(
             location=[tobe_grp.geometry.y.mean(), tobe_grp.geometry.x.mean()],
-            zoom_start=12, tiles=COMMON_TILE
+            zoom_start=12,
+            tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="TOBE")
 
-        c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
-        d_pt = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
+        c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index(drop=True)
+        d_pt  = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
         d_color = palette[(len(c_pts)-1) % len(palette)]
 
-        # C 마커
         for i, row in c_pts.iterrows():
             color = palette[i % len(palette)]
             folium.map.Marker(
                 [row.geometry.y, row.geometry.x],
                 icon=DivIcon(
-                    icon_size=(30,30),
-                    icon_anchor=(15,15),
-                    html=f'<div style="font-size:14px; color:#fff; background:{color}; '
-                         f'border-radius:50%; width:30px; height:30px; text-align:center; '
-                         f'line-height:30px;">{i+1}</div>'
+                    icon_size=(30, 30),
+                    icon_anchor=(15, 15),
+                    html=(
+                        f'<div style="font-size:14px; color:#fff; background:{color}; '
+                        'border-radius:50%; width:30px; height:30px; text-align:center; '
+                        f'line-height:30px;">{i+1}</div>'
+                    )
                 )
             ).add_to(fg)
 
-        # D 마커
         folium.Marker(
             [d_pt.y, d_pt.x],
             icon=folium.Icon(icon="flag-checkered", prefix="fa", color=d_color)
         ).add_to(fg)
 
-        # 경로 그리기
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
             end = (
@@ -174,8 +174,7 @@ with col2:
                 f"{start[1]},{start[0]};{end[1]},{end[0]}"
             )
             res = requests.get(url, params=params)
-            data = res.json()
-            routes = data.get("routes") or []
+            routes = res.json().get("routes") or []
 
             if routes:
                 coords = routes[0]["geometry"]["coordinates"]
