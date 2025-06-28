@@ -11,7 +11,7 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 
 # 상수
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
+MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbnp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH    = "cb_asis_sample.shp"
 TOBE_PATH    = "cb_tobe_sample.shp"
 COMMON_TILE  = "CartoDB positron"
@@ -86,7 +86,7 @@ with col1:
                     html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
                 )
             ).add_to(fg)
-            # 도착 D 마커: 목적지 아이콘
+            # 도착 D 마커: 동일 색깔 목적지 아이콘
             folium.Marker(
                 [d.y, d.x],
                 icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)
@@ -127,6 +127,8 @@ with col2:
 
         c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
         d_pt  = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
+        # D 색깔 지정
+        d_color = palette[(len(c_pts)-1) % len(palette)]
 
         for i, row in c_pts.iterrows():
             color = palette[i % len(palette)]
@@ -139,10 +141,10 @@ with col2:
                 )
             ).add_to(fg)
 
-        # 최종 D 마커: 목적지 아이콘
+        # 최종 D 마커: 동일 색깔 목적지 아이콘
         folium.Marker(
             [d_pt.y, d_pt.x],
-            icon=folium.Icon(icon="flag-checkered", prefix="fa", color="black")
+            icon=folium.Icon(icon="flag-checkered", prefix="fa", color=d_color)
         ).add_to(fg)
 
         for i in range(len(c_pts)):
