@@ -56,6 +56,7 @@ st.markdown("---")
 def render_map(m, height=600):
     html(m.get_root().render(), height=height)
 
+# 공통 Mapbox 파라미터
 params = {
     "geometries": "geojson",
     "overview":   "full",
@@ -83,6 +84,7 @@ with col1:
             c = crow.geometry
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
+            # 시작 마커 (숫자)
             folium.map.Marker(
                 [c.y, c.x],
                 icon=DivIcon(
@@ -93,21 +95,21 @@ with col1:
                          f'line-height:30px;">{idx+1}</div>'
                 )
             ).add_to(fg)
+            # 도착 마커 (flag)
             folium.Marker(
                 [d.y, d.x],
                 icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)
             ).add_to(fg)
 
+            # Mapbox 호출
             url = (
-                f"https://api.mapbox.com/directions/v5/mapbox/driving-traffic/"
+                f"https://api.mapbox.com/directions/v5/mapbox/driving/"
                 f"{c.x},{c.y};{d.x},{d.y}"
             )
             res = requests.get(url, params=params)
-            st.write("ASIS status:", res.status_code)
-            st.write(res.json())
-
             data = res.json()
             routes = data.get("routes") or []
+
             if routes:
                 coords = routes[0]["geometry"]["coordinates"]
                 line = LineString(coords)
@@ -138,6 +140,7 @@ with col2:
         d_pt = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
         d_color = palette[(len(c_pts)-1) % len(palette)]
 
+        # C 마커
         for i, row in c_pts.iterrows():
             color = palette[i % len(palette)]
             folium.map.Marker(
@@ -151,11 +154,13 @@ with col2:
                 )
             ).add_to(fg)
 
+        # D 마커
         folium.Marker(
             [d_pt.y, d_pt.x],
             icon=folium.Icon(icon="flag-checkered", prefix="fa", color=d_color)
         ).add_to(fg)
 
+        # 경로 그리기
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
             end = (
@@ -165,15 +170,13 @@ with col2:
             color = palette[i % len(palette)]
 
             url = (
-                f"https://api.mapbox.com/directions/v5/mapbox/driving-traffic/"
+                f"https://api.mapbox.com/directions/v5/mapbox/driving/"
                 f"{start[1]},{start[0]};{end[1]},{end[0]}"
             )
             res = requests.get(url, params=params)
-            st.write("TOBE status:", res.status_code)
-            st.write(res.json())
-
             data = res.json()
             routes = data.get("routes") or []
+
             if routes:
                 coords = routes[0]["geometry"]["coordinates"]
                 line = LineString(coords)
