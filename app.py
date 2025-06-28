@@ -98,4 +98,30 @@ for _, row in tobe_points.iterrows():
     CircleMarker(latlon, radius=4, color="green", fill=True, tooltip=f"stop_seq: {row['stop_seq']}").add_to(tobe_fg)
 
 # 경유지 순서대로 연결
-for i in range(len(c
+for i in range(len(c_coords) - 1):
+    o, d = c_coords[i], c_coords[i+1]
+    url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{o[1]},{o[0]};{d[1]},{d[0]}"
+    res = requests.get(url, params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN})
+    res.raise_for_status()
+    coords = res.json()["routes"][0]["geometry"]["coordinates"]
+    GeoJson(LineString(coords), tooltip=f"{i+1} → {i}").add_to(tobe_fg)
+
+tobe_fg.add_to(tobe_map)
+folium.LayerControl(collapsed=False).add_to(tobe_map)
+
+# ──────────────
+# 6) Folium 출력 함수
+def render_folium_map(m, width="100%", height=800):
+    html(m.get_root().render(), height=height, width=width)
+
+# ──────────────
+# 7) Streamlit에 출력
+col1, col2 = st.columns([1, 1], gap="large")
+
+with col1:
+    st.subheader("⬅ AS-IS")
+    render_folium_map(asis_map)
+
+with col2:
+    st.subheader("TO-BE ➡")
+    render_folium_map(tobe_map)
