@@ -18,21 +18,6 @@ COMMON_TILE  = "CartoDB positron"
 # 컬러 팔레트
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
-# KPI 영역: ASIS 첫줄, TOBE 둘째줄
-asis_cols = st.columns(4)
-asis_cols[0].metric("ASIS 소요시간",    "--", help="기존 경로의 예상 소요시간")
-asis_cols[1].metric("ASIS 최단거리",    "--", help="기존 경로의 예상 최단거리")
-asis_cols[2].metric("ASIS 물류비",      "--", help="기존 경로의 예상 물류비용")
-asis_cols[3].metric("ASIS 탄소배출량",  "--", help="기존 경로의 예상 CO₂ 배출량")
-
-tobe_cols = st.columns(4)
-tobe_cols[0].metric("TOBE 소요시간",    "--", help="개선 경로의 예상 소요시간")
-tobe_cols[1].metric("TOBE 최단거리",    "--", help="개선 경로의 예상 최단거리")
-tobe_cols[2].metric("TOBE 물류비",      "--", help="개선 경로의 예상 물류비용")
-tobe_cols[3].metric("TOBE 탄소배출량",  "--", help="개선 경로의 예상 CO₂ 배출량")
-
-st.markdown("---")
-
 # 데이터 로드
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
@@ -40,6 +25,26 @@ gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
 # 경로 선택
 common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
 selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
+
+# KPI 영역: ASIS 첫줄, TOBE 둘째줄
+asis_cols = st.columns(4)
+asis_cols[0].metric("ASIS 소요시간",    "--", help="기존 경로의 예상 소요시간")
+asis_cols[1].metric("ASIS 최단거리",    "--", help="기존 경로의 실제 최단거리 합계")
+asis_cols[2].metric("ASIS 물류비",      "--", help="기존 경로의 예상 물류비용")
+asis_cols[3].metric("ASIS 탄소배출량",  "--", help="기존 경로의 예상 CO₂ 배출량")
+
+tobe_cols = st.columns(4)
+tobe_cols[0].metric("TOBE 소요시간",    "--", help="개선 경로의 예상 소요시간")
+
+# TOBE 최단거리 계산
+tobe_group = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
+tobe_dist = round(tobe_group["drive_dist"].sum(), 2)
+tobe_cols[1].metric("TOBE 최단거리", f"{tobe_dist} km", help="개선 경로의 실제 최단거리 합계")
+
+tobe_cols[2].metric("TOBE 물류비",      "--", help="개선 경로의 예상 물류비용")
+tobe_cols[3].metric("TOBE 탄소배출량",  "--", help="개선 경로의 예상 CO₂ 배출량")
+
+st.markdown("---")
 
 def render_map(m, height=600):
     html(m.get_root().render(), height=height)
