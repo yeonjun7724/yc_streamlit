@@ -35,10 +35,11 @@ asis_grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
 tobe_grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
 
 # KPI 계산 (TOBE만 실제 로직)
-c_grp     = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
-tobe_time = f"{c_grp['elapsed_mi'].iloc[-1]} 분" if not c_grp.empty and "elapsed_mi" in c_grp.columns else "--"
-tobe_dist = round(tobe_grp["drive_dist"].sum(), 2) if "drive_dist" in tobe_grp.columns else 0
-tobe_cost = int(tobe_dist * 5000)
+c_grp        = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
+tobe_time    = f"{c_grp['elapsed_mi'].iloc[-1]} 분" if not c_grp.empty and "elapsed_mi" in c_grp.columns else "--"
+tobe_dist    = round(tobe_grp["drive_dist"].sum(), 2) if "drive_dist" in tobe_grp.columns else 0
+tobe_cost    = int(tobe_dist * 5000)
+tobe_emission = round(tobe_dist * 0.65, 2)  # kg CO2
 
 # KPI 표시
 asis_cols = st.columns(4)
@@ -48,10 +49,10 @@ asis_cols[2].metric("ASIS 물류비",     "--",                help="기존 경�
 asis_cols[3].metric("ASIS 탄소배출량", "--",                help="기존 경로의 예상 CO₂ 배출량")
 
 tobe_cols = st.columns(4)
-tobe_cols[0].metric("TOBE 소요시간",   tobe_time,           help="개선 경로의 실제 소요시간 (마지막 C의 elapsed_mi)")
-tobe_cols[1].metric("TOBE 최단거리",   f"{tobe_dist} km",   help="개선 경로의 실제 최단거리 합계")
-tobe_cols[2].metric("TOBE 물류비",     f"{tobe_cost:,} 원", help="최단거리에 5,000원을 곱한 물류비용")
-tobe_cols[3].metric("TOBE 탄소배출량", "--",                help="개선 경로의 예상 CO₂ 배출량")
+tobe_cols[0].metric("TOBE 소요시간",   tobe_time,                help="개선 경로의 실제 소요시간 (마지막 C의 elapsed_mi)")
+tobe_cols[1].metric("TOBE 최단거리",   f"{tobe_dist} km",       help="개선 경로의 실제 최단거리 합계")
+tobe_cols[2].metric("TOBE 물류비",     f"{tobe_cost:,} 원",     help="최단거리에 5,000원을 곱한 물류비용")
+tobe_cols[3].metric("TOBE 탄소배출량", f"{tobe_emission} kg CO2", help="최단거리에 0.65를 곱한 CO₂ 배출량")
 
 st.markdown("---")
 
