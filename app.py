@@ -83,7 +83,6 @@ with col1:
         for idx, crow in asis_c_pts.iterrows():
             color = palette[idx % len(palette)]
             c = crow.geometry
-            # 각 C마다 가장 가까운 D와 매칭
             d = asis_d_pts.loc[asis_d_pts.geometry.distance(c).idxmin()].geometry
 
             # 시작 마커 (숫자)
@@ -127,7 +126,7 @@ with col1:
         fg.add_to(m)
         render_map(m)
 
-    except Exception as e:
+    except Exception as e):
         st.error(f"[ASIS 에러] {e}")
 
 # ── TO-BE 경로: 순서 반전
@@ -146,7 +145,7 @@ with col2:
             .sort_values("stop_seq", ascending=False)
             .reset_index(drop=True)
         )
-        d_pt  = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
+        d_pt    = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
         d_color = palette[(len(c_pts)-1) % len(palette)]
 
         # C 마커
@@ -174,7 +173,7 @@ with col2:
         # 역순으로 C→다음 C 또는 D 연결
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
-            end = (
+            end   = (
                 (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1])
                 if i < len(c_pts)-1 else (d_pt.y, d_pt.x)
             )
@@ -201,5 +200,5 @@ with col2:
         fg.add_to(m)
         render_map(m)
 
-    except Exception as e:
+    except Exception as e):
         st.error(f"[TOBE 에러] {e}")
