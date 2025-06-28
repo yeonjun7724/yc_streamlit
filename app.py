@@ -3,21 +3,24 @@ import geopandas as gpd
 import requests
 from shapely.geometry import LineString
 import folium
-from folium import Map, FeatureGroup, GeoJson, Icon
+from folium import Map, FeatureGroup, GeoJson
+from folium.plugins import BeautifyIcon
 from streamlit.components.v1 import html
 
 # 와이드 레이아웃
 st.set_page_config(layout="wide")
 
 # 상수
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
+MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1..."
 ASIS_PATH    = "cb_asis_sample.shp"
 TOBE_PATH    = "cb_tobe_sample.shp"
 COMMON_TILE  = "CartoDB positron"
 
 # 컬러 팔레트
-palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-           "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
+palette = [
+    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
+]
 
 # 데이터 로드 (WGS84)
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
@@ -31,7 +34,7 @@ selected_id = st.selectbox("경로 선택 (sorting_id)", common_ids)
 asis_grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
 tobe_grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
 
-# KPI 계산
+# KPI 계산 (TOBE만 로직)
 c_grp         = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
 tobe_time     = f"{c_grp['elapsed_mi'].iloc[-1]} 분" if not c_grp.empty and "elapsed_mi" in c_grp.columns else "--"
 tobe_dist     = round(tobe_grp["drive_dist"].sum(), 2) if "drive_dist" in tobe_grp.columns else 0
@@ -75,15 +78,25 @@ with col1:
             color = palette[idx % len(palette)]
             c = crow.geometry
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
+            num = idx + 1
 
-            # C 마커
-            folium.Marker((c.y, c.x),
-                          icon=Icon(icon="truck", prefix="fa", color=color)
-                         ).add_to(fg)
-            # D 마커
-            folium.Marker((d.y, d.x),
-                          icon=Icon(icon="flag-checkered", prefix="fa", color=color)
-                         ).add_to(fg)
+            # C 마커: truck 아이콘 + 번호
+            BeautifyIcon(
+                icon="truck",
+                icon_shape="marker",
+                background_color=color,
+                text_color="#fff",
+                number=num
+            ).add_to(folium.Marker((c.y, c.x), icon=None).add_to(fg))
+
+            # D 마커: flag-checkered 아이콘 + 같은 번호
+            BeautifyIcon(
+                icon="flag-checkered",
+                icon_shape="marker",
+                background_color=color,
+                text_color="#fff",
+                number=num
+            ).add_to(folium.Marker((d.y, d.x), icon=None).add_to(fg))
 
             # 경로 선
             res = requests.get(
@@ -101,7 +114,7 @@ with col1:
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
             GeoJson(line, style_function=lambda _, s=style: s,
-                    tooltip=f"C{idx+1} → D").add_to(fg)
+                    tooltip=f"C{num} → D").add_to(fg)
 
         fg.add_to(m)
         render_map(m)
@@ -122,28 +135,37 @@ with col2:
         c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
         d_pt = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
 
-        # C 마커
-        for i, row in c_pts.iterrows():
-            color = palette[i % len(palette)]
-            folium.Marker(
-                (row.geometry.y, row.geometry.x),
-                icon=Icon(icon="truck", prefix="fa", color=color)
-            ).add_to(fg)
+        # C 지점 마커(번호 = stop_seq)
+        for _, row in c_pts.iterrows():
+            color = palette[row.name % len(palette)]
+            num   = int(row["stop_seq"])
+            BeautifyIcon(
+                icon="truck",
+                icon_shape="marker",
+                background_color=color,
+                text_color="#fff",
+                number=num
+            ).add_to(folium.Marker((row.geometry.y, row.geometry.x), icon=None).add_to(fg))
 
-        # D 마커
-        folium.Marker(
-            (d_pt.y, d_pt.x),
-            icon=Icon(icon="flag-checkered", prefix="fa", color="#000")
-        ).add_to(fg)
+        # D 지점 마커(번호 = 마지막 stop_seq+1)
+        final_num = len(c_pts) + 1
+        BeautifyIcon(
+            icon="flag-checkered",
+            icon_shape="marker",
+            background_color="#000",
+            text_color="#fff",
+            number=final_num
+        ).add_to(folium.Marker((d_pt.y, d_pt.x), icon=None).add_to(fg))
 
         # 각 구간 경로
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
-            if i < len(c_pts)-1:
-                end = (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1])
-            else:
-                end = (d_pt.y, d_pt.x)
+            end   = (
+                (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1])
+                if i < len(c_pts)-1 else (d_pt.y, d_pt.x)
+            )
             color = palette[i % len(palette)]
+            num   = i + 1
 
             res    = requests.get(
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/{start[1]},{start[0]};{end[1]},{end[0]}",
@@ -159,10 +181,11 @@ with col2:
                 line  = LineString([(start[1], start[0]), (end[1], end[0])])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
-            GeoJson(line, style_function=lambda _, s=style: s,
-                    tooltip=(f"C{c_pts.stop_seq.iloc[i]} → " +
-                             (f"C{c_pts.stop_seq.iloc[i+1]}" if i < len(c_pts)-1 else "D"))
-                   ).add_to(fg)
+            GeoJson(
+                line,
+                style_function=lambda _, s=style: s,
+                tooltip=(f"C{num} → " + (f"C{num+1}" if i < len(c_pts)-1 else "D"))
+            ).add_to(fg)
 
         fg.add_to(m)
         render_map(m)
