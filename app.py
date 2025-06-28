@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import geopandas as gpd
 import requests
@@ -7,49 +6,61 @@ import folium
 from folium import Map, FeatureGroup, CircleMarker, GeoJson
 from streamlit.components.v1 import html
 
-# --------- 기본 설정 ---------
+# --- 설정 ---
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH = "cb_asis_sample.shp"
-TOBE_PATH = "cb_tobe_sample.shp"
 
-# --------- 데이터 로드 ---------
+# --- 데이터 로드 ---
 @st.cache_data
 def load_data():
     gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
-    gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
-    return gdf_asis, gdf_tobe
+    return gdf_asis
 
-gdf_asis, gdf_tobe = load_data()
-common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
+gdf_asis = load_data()
+common_ids = sorted(set(gdf_asis["sorting_id"]))
 selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 
-# --------- 지도 준비: AS-IS ---------
+# --- AS-IS 그룹 ---
 group_asis = gdf_asis[gdf_asis["sorting_id"] == selected_id].dropna(subset=["geometry"])
-c_points_asis = group_asis[group_asis["location_t"] == "C"]
-d_points_asis = group_asis[group_asis["location_t"] == "D"]
+c_points = group_asis[group_asis["location_t"] == "C"]
+d_points = group_asis[group_asis["location_t"] == "D"]
 
-lat_center_asis = float(group_asis.geometry.y.mean())
-lon_center_asis = float(group_asis.geometry.x.mean())
+# --- 중심점 계산 ---
+lat_center = group_asis.geometry.y.mean()
+lon_center = group_asis.geometry.x.mean()
+
+if lat_center != lat_center or lon_center != lon_center:
+    # NaN이면 fallback
+    lat_center, lon_center = 0.0, 0.0
+
+lat_center = float(lat_center)
+lon_center = float(lon_center)
+
+st.write("중심점 확인:", lat_center, lon_center, type(lat_center), type(lon_center))
 
 m1 = Map(
-    location=[lat_center_asis, lon_center_asis],
+    location=[lat_center, lon_center],
     zoom_start=12,
     width="100%",
     height="100%"
 )
 fg1 = FeatureGroup(name=f"ASIS {selected_id}")
 
-for idx, row in c_points_asis.iterrows():
+for _, row in c_points.iterrows():
     c_pt = row.geometry
-    d_idx = d_points_asis.geometry.distance(c_pt).idxmin()
-    d_pt = d_points_asis.loc[d_idx].geometry
+    d_idx = d_points.distance(c_pt).idxmin()
+    d_pt = d_points.loc[d_idx].geometry
 
     c_latlon = (float(c_pt.y), float(c_pt.x))
     d_latlon = (float(d_pt.y), float(d_pt.x))
 
-    CircleMarker(location=c_latlon, radius=4, color="green", fill=True, tooltip="C").add_to(fg1)
-    CircleMarker(location=d_latlon, radius=4, color="red", fill=True, tooltip="D").add_to(fg1)
+    st.write("C 좌표:", c_latlon, type(c_latlon[0]), type(c_latlon[1]))
+    st.write("D 좌표:", d_latlon, type(d_latlon[0]), type(d_latlon[1]))
 
+    CircleMarker(location=c_latlon, radius=4, color="green", fill=True).add_to(fg1)
+    CircleMarker(location=d_latlon, radius=4, color="red", fill=True).add_to(fg1)
+
+    # Mapbox Directions
     lon1, lat1 = c_latlon[1], c_latlon[0]
     lon2, lat2 = d_latlon[1], d_latlon[0]
     url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{lon1},{lat1};{lon2},{lat2}"
@@ -62,83 +73,10 @@ for idx, row in c_points_asis.iterrows():
     res.raise_for_status()
     coords = res.json()["routes"][0]["geometry"]["coordinates"]
     line = LineString(coords)
-    GeoJson(line, tooltip="C → D").add_to(fg1)
+    GeoJson(line).add_to(fg1)
 
 fg1.add_to(m1)
 folium.LayerControl(collapsed=False).add_to(m1)
 
-# --------- 지도 준비: TO-BE ---------
-group_tobe = gdf_tobe[gdf_tobe["sorting_id"] == selected_id].dropna(subset=["geometry"])
-c_points_tobe = group_tobe[group_tobe["location_t"] == "C"].sort_values("stop_seq", ascending=False)
-d_points_tobe = group_tobe[group_tobe["location_t"] == "D"]
-
-lat_center_tobe = float(group_tobe.geometry.y.mean())
-lon_center_tobe = float(group_tobe.geometry.x.mean())
-
-m2 = Map(
-    location=[lat_center_tobe, lon_center_tobe],
-    zoom_start=12,
-    width="100%",
-    height="100%"
-)
-fg2 = FeatureGroup(name=f"TOBE {selected_id}")
-
-c_coords = []
-for _, row in c_points_tobe.iterrows():
-    pt = row.geometry
-    latlon = (float(pt.y), float(pt.x))
-    c_coords.append(latlon)
-    CircleMarker(location=latlon, radius=4, color="green", fill=True, tooltip=f"C{row['stop_seq']}").add_to(fg2)
-
-d_geom = d_points_tobe.iloc[0].geometry
-d_latlon = (float(d_geom.y), float(d_geom.x))
-CircleMarker(location=d_latlon, radius=4, color="red", fill=True, tooltip="D").add_to(fg2)
-
-for i in range(len(c_coords) - 1):
-    lon1, lat1 = c_coords[i][1], c_coords[i][0]
-    lon2, lat2 = c_coords[i+1][1], c_coords[i+1][0]
-    url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{lon1},{lat1};{lon2},{lat2}"
-    params = {
-        "geometries": "geojson",
-        "overview": "simplified",
-        "access_token": MAPBOX_TOKEN
-    }
-    res = requests.get(url, params=params)
-    res.raise_for_status()
-    coords = res.json()["routes"][0]["geometry"]["coordinates"]
-    line = LineString(coords)
-    GeoJson(line, tooltip=f"C{i+1} → C{i}").add_to(fg2)
-
-lon1, lat1 = c_coords[-1][1], c_coords[-1][0]
-lon2, lat2 = d_latlon[1], d_latlon[0]
-url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{lon1},{lat1};{lon2},{lat2}"
-params = {
-    "geometries": "geojson",
-    "overview": "simplified",
-    "access_token": MAPBOX_TOKEN
-}
-res = requests.get(url, params=params)
-res.raise_for_status()
-coords = res.json()["routes"][0]["geometry"]["coordinates"]
-line = LineString(coords)
-GeoJson(line, tooltip="C → D").add_to(fg2)
-
-fg2.add_to(m2)
-folium.LayerControl(collapsed=False).add_to(m2)
-
-# --------- 화면 출력 ---------
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown("### ⬅ AS-IS")
-    try:
-        html(m1.get_root().render(), width="100%", height=800, scrolling=True)
-    except Exception as e:
-        st.error(f"[ASIS 에러] {e}")
-
-with col2:
-    st.markdown("### TO-BE ➡")
-    try:
-        html(m2.get_root().render(), width="100%", height=800, scrolling=True)
-    except Exception as e:
-        st.error(f"[TOBE 에러] {e}")
+st.markdown("### ⬅ AS-IS")
+html(m1.get_root().render(), width="100%", height=800, scrolling=True)
