@@ -12,7 +12,7 @@ st.set_page_config(layout="wide")
 
 # 상수
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
-ASIS_PATH    = "cb_asis_sample.shp"
+ASIS_PATH    = "cb_tobe_sample.shp"
 TOBE_PATH    = "cb_tobe_sample.shp"
 COMMON_TILE  = "CartoDB positron"
 
