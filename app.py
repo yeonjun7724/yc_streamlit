@@ -11,7 +11,7 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 
 # 상수
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
+MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbnp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH    = "cb_tobe_sample.shp"
 TOBE_PATH    = "cb_tobe_sample.shp"
 COMMON_TILE  = "CartoDB positron"
@@ -56,68 +56,66 @@ st.markdown("---")
 def render_map(m, height=600):
     html(m.get_root().render(), height=height)
 
+# 공통 Mapbox 파라미터
 params = {
-    "geometries":   "geojson",
-    "overview":     "full",
-    "steps":        "true",
+    "geometries": "geojson",
+    "overview":   "full",
+    "steps":      "true",
     "access_token": MAPBOX_TOKEN
 }
 
 col1, col2 = st.columns(2, gap="large")
 
-# ── AS-IS 경로: C–D 페어 4쌍 모두 그리기
+# ── AS-IS 경로
 with col1:
-    st.markdown("#### 현재 (AS-IS)")
+    st.markdown("#### 현재")
     try:
-        m  = Map(
+        m = Map(
             location=[asis_grp.geometry.y.mean(), asis_grp.geometry.x.mean()],
             zoom_start=12, tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="ASIS")
 
-        # C/D 포인트를 각각 index로 매칭
-        asis_c = asis_grp[asis_grp["location_t"] == "C"].reset_index(drop=True)
-        asis_d = asis_grp[asis_grp["location_t"] == "D"].reset_index(drop=True)
-        n_pairs = min(len(asis_c), len(asis_d))
+        c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
+        d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
 
-        for idx in range(n_pairs):
-            c = asis_c.geometry.iloc[idx]
-            d = asis_d.geometry.iloc[idx]
+        for idx, crow in c_pts.iterrows():
             color = palette[idx % len(palette)]
+            c = crow.geometry
+            d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
-            # C 마커
+            # 시작 마커 (숫자)
             folium.map.Marker(
                 [c.y, c.x],
                 icon=DivIcon(
-                    icon_size=(30,30), icon_anchor=(15,15),
-                    html=(
-                        f'<div style="font-size:14px; color:#fff; background:{color}; '
-                        'border-radius:50%; width:30px; height:30px; text-align:center; '
-                        f'line-height:30px;">{idx+1}</div>'
-                    )
+                    icon_size=(30,30),
+                    icon_anchor=(15,15),
+                    html=f'<div style="font-size:14px; color:#fff; background:{color}; '
+                         f'border-radius:50%; width:30px; height:30px; text-align:center; '
+                         f'line-height:30px;">{idx+1}</div>'
                 )
             ).add_to(fg)
-
-            # D 마커
+            # 도착 마커 (flag)
             folium.Marker(
                 [d.y, d.x],
                 icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)
             ).add_to(fg)
 
-            # 라우팅
+            # Mapbox 호출
             url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
                 f"{c.x},{c.y};{d.x},{d.y}"
             )
-            res    = requests.get(url, params=params)
-            routes = res.json().get("routes") or []
+            res = requests.get(url, params=params)
+            data = res.json()
+            routes = data.get("routes") or []
 
             if routes:
                 coords = routes[0]["geometry"]["coordinates"]
-                line   = LineString(coords)
-                style  = {"color": color, "weight": 5}
+                line = LineString(coords)
+                style = {"color": color, "weight": 5}
             else:
-                line  = LineString([(c.x, c.y), (d.x, d.y)])
+                line = LineString([(c.x, c.y), (d.x, d.y)])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
@@ -128,23 +126,19 @@ with col1:
     except Exception as e:
         st.error(f"[ASIS 에러] {e}")
 
-# ── TO-BE 경로: stop_seq 오름차순(1→…)으로 정상 표기
+# ── TO-BE 경로
 with col2:
-    st.markdown("#### 공동운송 도입 후 (TO-BE)")
+    st.markdown("#### 공동운송 도입 후")
     try:
-        m  = Map(
+        m = Map(
             location=[tobe_grp.geometry.y.mean(), tobe_grp.geometry.x.mean()],
             zoom_start=12, tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="TOBE")
 
-        c_pts = (
-            tobe_grp[tobe_grp["location_t"] == "C"]
-            .sort_values("stop_seq", ascending=True)
-            .reset_index(drop=True)
-        )
-        d_pt   = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
-        d_color= palette[(len(c_pts)-1) % len(palette)]
+        c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
+        d_pt = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
+        d_color = palette[(len(c_pts)-1) % len(palette)]
 
         # C 마커
         for i, row in c_pts.iterrows():
@@ -152,12 +146,11 @@ with col2:
             folium.map.Marker(
                 [row.geometry.y, row.geometry.x],
                 icon=DivIcon(
-                    icon_size=(30,30), icon_anchor=(15,15),
-                    html=(
-                        f'<div style="font-size:14px; color:#fff; background:{color}; '
-                        'border-radius:50%; width:30px; height:30px; text-align:center; '
-                        f'line-height:30px;">{i+1}</div>'
-                    )
+                    icon_size=(30,30),
+                    icon_anchor=(15,15),
+                    html=f'<div style="font-size:14px; color:#fff; background:{color}; '
+                         f'border-radius:50%; width:30px; height:30px; text-align:center; '
+                         f'line-height:30px;">{i+1}</div>'
                 )
             ).add_to(fg)
 
@@ -167,31 +160,36 @@ with col2:
             icon=folium.Icon(icon="flag-checkered", prefix="fa", color=d_color)
         ).add_to(fg)
 
-        # 경로 그리기 (순서대로 C→…→D)
+        # 경로 그리기
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
-            end   = (
+            end = (
                 (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1])
                 if i < len(c_pts)-1 else (d_pt.y, d_pt.x)
             )
             color = palette[i % len(palette)]
 
-            url    = (
+            url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
                 f"{start[1]},{start[0]};{end[1]},{end[0]}"
             )
-            res    = requests.get(url, params=params)
-            routes = res.json().get("routes") or []
+            res = requests.get(url, params=params)
+            data = res.json()
+            routes = data.get("routes") or []
 
             if routes:
                 coords = routes[0]["geometry"]["coordinates"]
-                line   = LineString(coords)
-                style  = {"color": color, "weight": 5}
+                line = LineString(coords)
+                style = {"color": color, "weight": 5}
             else:
-                line  = LineString([(start[1], start[0]), (end[1], end[0])])
+                line = LineString([(start[1], start[0]), (end[1], end[0])])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
-            GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
+            tooltip_text = (
+                f"{i+1}: C→"
+                f"{'C'+str(c_pts.stop_seq.iloc[i+1]) if i < len(c_pts)-1 else 'D'}"
+            )
+            GeoJson(line, style_function=lambda _, s=style: s, tooltip=tooltip_text).add_to(fg)
 
         fg.add_to(m)
         render_map(m)
