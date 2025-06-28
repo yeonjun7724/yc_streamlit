@@ -23,14 +23,22 @@ palette = [
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
 
-# 선택박스
+# KPI 칸 4개
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("ASIS 소요시간", "--")
+k2.metric("TOBE 소요시간", "--")
+k3.metric("물류비", "--")
+k4.metric("탄소배출량", "--")
+
+# 경로 선택 박스
 common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
 selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 
-# 맵 렌더 함수 (width 자동)
+# Folium 맵 렌더링 함수
 def render_map(m, height=600):
     html(m.get_root().render(), height=height)
 
+# 두 개의 컬럼에 AS-IS / TO-BE 맵
 col1, col2 = st.columns(2, gap="large")
 
 with col1:
@@ -52,7 +60,7 @@ with col1:
             c_ll = (c.y, c.x)
             d_ll = (d.y, d.x)
 
-            # 세련된 원형 마커 (테두리 흰색, 내부 컬러)
+            # 세련된 원형 마커
             CircleMarker(
                 location=c_ll, radius=8,
                 color="white", weight=2,
@@ -66,7 +74,7 @@ with col1:
                 tooltip="D"
             ).add_to(fg)
 
-            # Mapbox 라우팅
+            # Mapbox 경로 요청
             url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
                 f"{c.x},{c.y};{d.x},{d.y}"
@@ -127,7 +135,7 @@ with col2:
             tooltip="D"
         ).add_to(fg)
 
-        # C→C 구간
+        # C→C 경로
         for i in range(len(coords) - 1):
             color = palette[i % len(palette)]
             lon1, lat1 = coords[i][1], coords[i][0]
@@ -152,7 +160,7 @@ with col2:
                 }
             ).add_to(fg)
 
-        # 마지막 C→D
+        # 마지막 C→D 경로
         lon1, lat1 = coords[-1][1], coords[-1][0]
         lon2, lat2 = d_pt.x, d_pt.y
         url = (
