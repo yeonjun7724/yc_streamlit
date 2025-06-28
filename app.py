@@ -7,14 +7,55 @@ import folium
 from folium import Map, FeatureGroup, CircleMarker, GeoJson
 from streamlit.components.v1 import html
 
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"  # 꼭 본인 토큰으로 교체하세요
+# 1️⃣ Streamlit 페이지를 와이드로 설정
+st.set_page_config(layout="wide")
+
+# 2️⃣ Mapbox 토큰과 파일 경로
+MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH = "cb_asis_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 
-def get_route(origin, destination):
-    lon1, lat1 = origin[1], origin[0]
-    lon2, lat2 = destination[1], destination[0]
-    url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{lon1},{lat1};{lon2},{lat2}"
+# 3️⃣ Shapefile 데이터 불러오기
+@st.cache_data
+def load_data():
+    asis_gdf = gpd.read_file(ASIS_PATH).to_crs(4326)
+    tobe_gdf = gpd.read_file(TOBE_PATH).to_crs(4326)
+    return asis_gdf, tobe_gdf
+
+asis_gdf, tobe_gdf = load_data()
+
+# 4️⃣ 교집합 sorting_id만 선택
+common_ids = sorted(set(asis_gdf["sorting_id"]) & set(tobe_gdf["sorting_id"]))
+selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
+
+# 5️⃣ 선택한 sorting_id로 필터링
+asis_group = asis_gdf[asis_gdf["sorting_id"] == selected_id]
+tobe_group = tobe_gdf[tobe_gdf["sorting_id"] == selected_id]
+
+# 6️⃣ Folium 지도를 위한 중심좌표 계산
+asis_center = [asis_group.geometry.y.mean(), asis_group.geometry.x.mean()]
+tobe_center = [tobe_group.geometry.y.mean(), tobe_group.geometry.x.mean()]
+
+# 7️⃣ AS-IS 지도 생성
+asis_map = Map(location=asis_center, zoom_start=12)
+asis_fg = FeatureGroup(name=f"ASIS {selected_id}")
+
+asis_c_points = asis_group[asis_group["location_t"] == "C"]
+asis_d_points = asis_group[asis_group["location_t"] == "D"]
+
+for _, c_row in asis_c_points.iterrows():
+    c_pt = c_row.geometry
+    d_nearest_idx = asis_d_points.geometry.distance(c_pt).idxmin()
+    d_pt = asis_d_points.loc[d_nearest_idx].geometry
+
+    c_latlon = (c_pt.y, c_pt.x)
+    d_latlon = (d_pt.y, d_pt.x)
+
+    CircleMarker(location=c_latlon, radius=4, color="green", fill=True, tooltip="C").add_to(asis_fg)
+    CircleMarker(location=d_latlon, radius=4, color="red", fill=True, tooltip="D").add_to(asis_fg)
+
+    # Mapbox Directions API 호출
+    url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{c_latlon[1]},{c_latlon[0]};{d_latlon[1]},{d_latlon[0]}"
     params = {
         "geometries": "geojson",
         "overview": "simplified",
@@ -23,79 +64,84 @@ def get_route(origin, destination):
     res = requests.get(url, params=params)
     res.raise_for_status()
     coords = res.json()["routes"][0]["geometry"]["coordinates"]
-    return LineString(coords)
+    line = LineString(coords)
 
-@st.cache_data
-def load_data():
-    gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
-    gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
-    return gdf_asis, gdf_tobe
+    GeoJson(line, tooltip="C → D").add_to(asis_fg)
 
-gdf_asis, gdf_tobe = load_data()
-common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
-selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
+asis_fg.add_to(asis_map)
+folium.LayerControl(collapsed=False).add_to(asis_map)
 
-def make_asis_map(sorting_id):
-    group = gdf_asis[gdf_asis["sorting_id"] == sorting_id]
-    c_points = group[group["location_t"] == "C"]
-    d_points = group[group["location_t"] == "D"]
-    m = Map(location=[group.geometry.y.mean(), group.geometry.x.mean()], zoom_start=12)
-    fg = FeatureGroup(name=f"ASIS {sorting_id}")
-    for c_idx, c_row in c_points.iterrows():
-        c_pt = c_row.geometry
-        d_nearest = d_points.geometry.distance(c_pt).idxmin()
-        d_pt = d_points.loc[d_nearest].geometry
-        c_latlon = (c_pt.y, c_pt.x)
-        d_latlon = (d_pt.y, d_pt.x)
-        CircleMarker(location=c_latlon, radius=4, color="green", fill=True, tooltip=f"C").add_to(fg)
-        CircleMarker(location=d_latlon, radius=4, color="red", fill=True, tooltip=f"D").add_to(fg)
-        line = get_route(c_latlon, d_latlon)
-        GeoJson(line, tooltip="C → D").add_to(fg)
-    fg.add_to(m)
-    folium.LayerControl(collapsed=False).add_to(m)
-    return m
+# 8️⃣ TO-BE 지도 생성
+tobe_map = Map(location=tobe_center, zoom_start=12)
+tobe_fg = FeatureGroup(name=f"TOBE {selected_id}")
 
-def make_tobe_map(sorting_id):
-    group = gdf_tobe[gdf_tobe["sorting_id"] == sorting_id]
-    c_points = group[group["location_t"] == "C"].sort_values("stop_seq", ascending=False)
-    d_points = group[group["location_t"] == "D"]
-    m = Map(location=[group.geometry.y.mean(), group.geometry.x.mean()], zoom_start=12)
-    fg = FeatureGroup(name=f"TOBE {sorting_id}")
-    c_coords = []
-    for _, row in c_points.iterrows():
-        pt = row.geometry
-        latlon = (pt.y, pt.x)
-        c_coords.append(latlon)
-        CircleMarker(location=latlon, radius=4, color="green", fill=True, tooltip=f"C{row['stop_seq']}").add_to(fg)
-    d_geom = d_points.iloc[0].geometry
-    d_latlon = (d_geom.y, d_geom.x)
-    CircleMarker(location=d_latlon, radius=4, color="red", fill=True, tooltip="D").add_to(fg)
-    for i in range(len(c_coords) - 1):
-        line = get_route(c_coords[i], c_coords[i+1])
-        GeoJson(line, tooltip=f"C{i+1} → C{i}").add_to(fg)
-    line = get_route(c_coords[-1], d_latlon)
-    GeoJson(line, tooltip="C → D").add_to(fg)
-    fg.add_to(m)
-    folium.LayerControl(collapsed=False).add_to(m)
-    return m
+tobe_c_points = tobe_group[tobe_group["location_t"] == "C"].sort_values("stop_seq", ascending=False)
+tobe_d_points = tobe_group[tobe_group["location_t"] == "D"]
 
-def render_folium_map(m, width=500, height=500):
+tobe_c_coords = []
+for _, row in tobe_c_points.iterrows():
+    pt = row.geometry
+    latlon = (pt.y, pt.x)
+    tobe_c_coords.append(latlon)
+    CircleMarker(location=latlon, radius=4, color="green", fill=True, tooltip=f"C{row['stop_seq']}").add_to(tobe_fg)
+
+d_geom = tobe_d_points.iloc[0].geometry
+d_latlon = (d_geom.y, d_geom.x)
+CircleMarker(location=d_latlon, radius=4, color="red", fill=True, tooltip="D").add_to(tobe_fg)
+
+# C → C → ... → D 순서대로 연결
+for i in range(len(tobe_c_coords) - 1):
+    origin = tobe_c_coords[i]
+    dest = tobe_c_coords[i+1]
+    url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{origin[1]},{origin[0]};{dest[1]},{dest[0]}"
+    params = {
+        "geometries": "geojson",
+        "overview": "simplified",
+        "access_token": MAPBOX_TOKEN
+    }
+    res = requests.get(url, params=params)
+    res.raise_for_status()
+    coords = res.json()["routes"][0]["geometry"]["coordinates"]
+    line = LineString(coords)
+
+    GeoJson(line, tooltip=f"C{i+1} → C{i}").add_to(tobe_fg)
+
+# 마지막 C → D
+origin = tobe_c_coords[-1]
+dest = d_latlon
+url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{origin[1]},{origin[0]};{dest[1]},{dest[0]}"
+params = {
+    "geometries": "geojson",
+    "overview": "simplified",
+    "access_token": MAPBOX_TOKEN
+}
+res = requests.get(url, params=params)
+res.raise_for_status()
+coords = res.json()["routes"][0]["geometry"]["coordinates"]
+line = LineString(coords)
+
+GeoJson(line, tooltip="C → D").add_to(tobe_fg)
+
+tobe_fg.add_to(tobe_map)
+folium.LayerControl(collapsed=False).add_to(tobe_map)
+
+# 9️⃣ 지도 출력 (와이드)
+def render_folium_map(m, width="100%", height=800):
     html(m.get_root().render(), height=height, width=width)
 
-col1, col2 = st.columns(2)
+# 10️⃣ 화면에 표시
+col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
-    st.markdown("### ⬅ AS-IS")
+    st.subheader("⬅ AS-IS")
     try:
-        m1 = make_asis_map(selected_id)
-        render_folium_map(m1)
+        render_folium_map(asis_map)
     except Exception as e:
         st.error(f"[ASIS 에러] {e}")
 
 with col2:
-    st.markdown("### TO-BE ➡")
+    st.subheader("TO-BE ➡")
     try:
-        m2 = make_tobe_map(selected_id)
-        render_folium_map(m2)
+        render_folium_map(tobe_map)
     except Exception as e:
         st.error(f"[TOBE 에러] {e}")
