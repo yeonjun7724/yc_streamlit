@@ -24,12 +24,15 @@ common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
 selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 
 # --------- 지도 준비: AS-IS ---------
-group_asis = gdf_asis[gdf_asis["sorting_id"] == selected_id]
+group_asis = gdf_asis[gdf_asis["sorting_id"] == selected_id].dropna(subset=["geometry"])
 c_points_asis = group_asis[group_asis["location_t"] == "C"]
 d_points_asis = group_asis[group_asis["location_t"] == "D"]
 
+lat_center_asis = float(group_asis.geometry.y.mean())
+lon_center_asis = float(group_asis.geometry.x.mean())
+
 m1 = Map(
-    location=[group_asis.geometry.y.mean(), group_asis.geometry.x.mean()],
+    location=[lat_center_asis, lon_center_asis],
     zoom_start=12,
     width="100%",
     height="100%"
@@ -41,8 +44,8 @@ for idx, row in c_points_asis.iterrows():
     d_idx = d_points_asis.geometry.distance(c_pt).idxmin()
     d_pt = d_points_asis.loc[d_idx].geometry
 
-    c_latlon = (c_pt.y, c_pt.x)
-    d_latlon = (d_pt.y, d_pt.x)
+    c_latlon = (float(c_pt.y), float(c_pt.x))
+    d_latlon = (float(d_pt.y), float(d_pt.x))
 
     CircleMarker(location=c_latlon, radius=4, color="green", fill=True, tooltip="C").add_to(fg1)
     CircleMarker(location=d_latlon, radius=4, color="red", fill=True, tooltip="D").add_to(fg1)
@@ -65,12 +68,15 @@ fg1.add_to(m1)
 folium.LayerControl(collapsed=False).add_to(m1)
 
 # --------- 지도 준비: TO-BE ---------
-group_tobe = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
+group_tobe = gdf_tobe[gdf_tobe["sorting_id"] == selected_id].dropna(subset=["geometry"])
 c_points_tobe = group_tobe[group_tobe["location_t"] == "C"].sort_values("stop_seq", ascending=False)
 d_points_tobe = group_tobe[group_tobe["location_t"] == "D"]
 
+lat_center_tobe = float(group_tobe.geometry.y.mean())
+lon_center_tobe = float(group_tobe.geometry.x.mean())
+
 m2 = Map(
-    location=[group_tobe.geometry.y.mean(), group_tobe.geometry.x.mean()],
+    location=[lat_center_tobe, lon_center_tobe],
     zoom_start=12,
     width="100%",
     height="100%"
@@ -80,12 +86,12 @@ fg2 = FeatureGroup(name=f"TOBE {selected_id}")
 c_coords = []
 for _, row in c_points_tobe.iterrows():
     pt = row.geometry
-    latlon = (pt.y, pt.x)
+    latlon = (float(pt.y), float(pt.x))
     c_coords.append(latlon)
     CircleMarker(location=latlon, radius=4, color="green", fill=True, tooltip=f"C{row['stop_seq']}").add_to(fg2)
 
 d_geom = d_points_tobe.iloc[0].geometry
-d_latlon = (d_geom.y, d_geom.x)
+d_latlon = (float(d_geom.y), float(d_geom.x))
 CircleMarker(location=d_latlon, radius=4, color="red", fill=True, tooltip="D").add_to(fg2)
 
 for i in range(len(c_coords) - 1):
