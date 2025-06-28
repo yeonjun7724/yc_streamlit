@@ -1,5 +1,6 @@
-streamlit
-geopandas
-shapely
-requests
+streamlit>=1.32
+geopandas>=0.14
+pydeck>=0.8
+requests>=2.31
+shapely>=2.0
 folium
