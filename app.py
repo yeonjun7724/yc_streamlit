@@ -3,7 +3,8 @@ import geopandas as gpd
 import requests
 from shapely.geometry import LineString
 import folium
-from folium import Map, FeatureGroup, GeoJson, Icon
+from folium import Map, FeatureGroup, GeoJson
+from folium.features import DivIcon
 from streamlit.components.v1 import html
 
 # 와이드 레이아웃
@@ -71,21 +72,33 @@ with col1:
         c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
         d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
 
+        # 각 구간에 순번 표시
         for idx, crow in c_pts.iterrows():
             color = palette[idx % len(palette)]
             c = crow.geometry
+            # 다음 D 지점
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
-            # C 마커
-            folium.Marker((c.y, c.x),
-                          icon=Icon(icon="truck", prefix="fa", color=color)
-                         ).add_to(fg)
-            # D 마커
-            folium.Marker((d.y, d.x),
-                          icon=Icon(icon="flag-checkered", prefix="fa", color=color)
-                         ).add_to(fg)
+            # 시작 C 마커(숫자 포함)
+            folium.map.Marker(
+                [c.y, c.x],
+                icon=DivIcon(
+                    icon_size=(30,30),
+                    icon_anchor=(15,15),
+                    html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
+                )
+            ).add_to(fg)
+            # 도착 D 마커(숫자 포함)
+            folium.map.Marker(
+                [d.y, d.x],
+                icon=DivIcon(
+                    icon_size=(30,30),
+                    icon_anchor=(15,15),
+                    html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
+                )
+            ).add_to(fg)
 
-            # 경로 선
+            # 경로 선 그리기
             res = requests.get(
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}",
                 params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
@@ -100,8 +113,7 @@ with col1:
                 line  = LineString([(c.x, c.y), (d.x, d.y)])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
-            GeoJson(line, style_function=lambda _, s=style: s,
-                    tooltip=f"C{idx+1} → D").add_to(fg)
+            GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
         fg.add_to(m)
         render_map(m)
@@ -120,29 +132,34 @@ with col2:
         fg = FeatureGroup(name="TOBE")
 
         c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
-        d_pt = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
+        d_pt  = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
 
-        # C 마커
+        # C 지점 순번 마커
         for i, row in c_pts.iterrows():
             color = palette[i % len(palette)]
-            folium.Marker(
-                (row.geometry.y, row.geometry.x),
-                icon=Icon(icon="truck", prefix="fa", color=color)
+            folium.map.Marker(
+                [row.geometry.y, row.geometry.x],
+                icon=DivIcon(
+                    icon_size=(30,30),
+                    icon_anchor=(15,15),
+                    html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{i+1}</div>'
+                )
             ).add_to(fg)
 
-        # D 마커
-        folium.Marker(
-            (d_pt.y, d_pt.x),
-            icon=Icon(icon="flag-checkered", prefix="fa", color="#000")
+        # D 지점(최종)
+        folium.map.Marker(
+            [d_pt.y, d_pt.x],
+            icon=DivIcon(
+                icon_size=(30,30),
+                icon_anchor=(15,15),
+                html=f'<div style="font-size:14px; color:#000; background:#fff; border:2px solid #000; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">D</div>'
+            )
         ).add_to(fg)
 
-        # 각 구간 경로
+        # 각 구간 경로 + 순번 툴팁
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
-            if i < len(c_pts)-1:
-                end = (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1])
-            else:
-                end = (d_pt.y, d_pt.x)
+            end   = (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1]) if i < len(c_pts)-1 else (d_pt.y, d_pt.x)
             color = palette[i % len(palette)]
 
             res    = requests.get(
@@ -160,9 +177,8 @@ with col2:
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
             GeoJson(line, style_function=lambda _, s=style: s,
-                    tooltip=(f"C{c_pts.stop_seq.iloc[i]} → " +
-                             (f"C{c_pts.stop_seq.iloc[i+1]}" if i < len(c_pts)-1 else "D"))
-                   ).add_to(fg)
+                    tooltip=f"{i+1}: C→{'C' + str(c_pts.stop_seq.iloc[i+1]) if i < len(c_pts)-1 else 'D'}")
+            .add_to(fg)
 
         fg.add_to(m)
         render_map(m)
