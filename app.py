@@ -77,6 +77,7 @@ with col1:
             c = crow.geometry
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
+            # 시작 C 마커: 숫자
             folium.map.Marker(
                 [c.y, c.x],
                 icon=DivIcon(
@@ -85,13 +86,10 @@ with col1:
                     html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
                 )
             ).add_to(fg)
-            folium.map.Marker(
+            # 도착 D 마커: 목적지 아이콘
+            folium.Marker(
                 [d.y, d.x],
-                icon=DivIcon(
-                    icon_size=(30,30),
-                    icon_anchor=(15,15),
-                    html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
-                )
+                icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)
             ).add_to(fg)
 
             res = requests.get(
@@ -141,13 +139,10 @@ with col2:
                 )
             ).add_to(fg)
 
-        folium.map.Marker(
+        # 최종 D 마커: 목적지 아이콘
+        folium.Marker(
             [d_pt.y, d_pt.x],
-            icon=DivIcon(
-                icon_size=(30,30),
-                icon_anchor=(15,15),
-                html=f'<div style="font-size:14px; color:#000; background:#fff; border:2px solid #000; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">D</div>'
-            )
+            icon=folium.Icon(icon="flag-checkered", prefix="fa", color="black")
         ).add_to(fg)
 
         for i in range(len(c_pts)):
