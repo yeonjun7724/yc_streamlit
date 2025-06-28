@@ -11,24 +11,21 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
-ASIS_PATH = "cb_asis_sample.shp"
-TOBE_PATH = "cb_tobe_sample.shp"
+ASIS_PATH    = "cb_asis_sample.shp"
+TOBE_PATH    = "cb_tobe_sample.shp"
 
 # 공통 배경지도
-TILE = "CartoDB positron"
+COMMON_TILE = "CartoDB positron"
 
 # 컬러 팔레트
-palette = [
-    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
-]
+palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
 # KPI 영역
 k1, k2, k3, k4 = st.columns(4)
-k1.metric("ASIS 소요시간", "--", help="기존 경로의 예상 소요시간")
-k2.metric("TOBE 소요시간", "--", help="개선 경로의 예상 소요시간")
-k3.metric("물류비", "--", help="예상 물류비용")
-k4.metric("탄소배출량", "--", help="예상 CO₂ 배출량")
+k1.metric("ASIS 소요시간", "--")
+k2.metric("TOBE 소요시간", "--")
+k3.metric("물류비", "--")
+k4.metric("탄소배출량", "--")
 
 st.markdown("---")
 
@@ -45,70 +42,123 @@ def render_map(m, height=600):
 
 col1, col2 = st.columns(2, gap="large")
 
-for title, df in [("AS-IS", gdf_asis), ("TO-BE", gdf_tobe)]:
-    with (col1 if title=="AS-IS" else col2):
-        st.markdown(f"#### {('⬅ ' if title=='AS-IS' else '')}{title} 경로{(' ➡' if title=='TO-BE' else '')}")
-        try:
-            grp = df[df["sorting_id"] == selected_id]
-            c_pts = grp[grp["location_t"] == "C"].sort_values("stop_seq", ascending=True)
-            d_pt = grp[grp["location_t"] == "D"].iloc[0].geometry
+# AS-IS
+with col1:
+    st.markdown("#### ⬅ AS-IS 경로")
+    try:
+        grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
+        c_pts = grp[grp["location_t"] == "C"].reset_index()
+        d_pts = grp[grp["location_t"] == "D"].reset_index()
 
-            # 공통 맵 생성
-            m = Map(
-                location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
-                zoom_start=12,
-                tiles=TILE, attr="CartoDB Positron"
+        m = Map(
+            location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
+            zoom_start=12,
+            tiles=COMMON_TILE
+        )
+        fg = FeatureGroup(name="ASIS")
+
+        for idx, crow in c_pts.iterrows():
+            color = palette[idx % len(palette)]
+            c = crow.geometry
+            # 가장 가까운 D
+            d_idx = d_pts.geometry.distance(c).idxmin()
+            d = d_pts.loc[d_idx].geometry
+
+            # 아이콘
+            c_icon = BeautifyIcon(
+                icon="map-pin", icon_shape="marker",
+                background_color=color, border_color="#fff",
+                text_color="#fff", number=idx+1
             )
-            fg = FeatureGroup(name=f"{title} {selected_id}")
-
-            # C 포인트들
-            coords = []
-            for idx, (_, row) in enumerate(c_pts.iterrows()):
-                color = palette[idx % len(palette)]
-                pt = row.geometry
-                ll = (pt.y, pt.x)
-                coords.append(ll)
-
-                icon = BeautifyIcon(
-                    icon="map-pin", icon_shape="marker",
-                    background_color=color, border_color="#ffffff",
-                    text_color="#ffffff", number=row["stop_seq"]
-                )
-                folium.Marker(location=ll, icon=icon).add_to(fg)
-
-            # D 포인트
             d_icon = BeautifyIcon(
                 icon="flag-checkered", icon_shape="marker",
-                background_color="#000000", border_color="#ffffff",
-                text_color="#ffffff"
+                background_color=color, border_color="#fff",
+                text_color="#fff"
             )
-            folium.Marker(location=(d_pt.y, d_pt.x), icon=d_icon).add_to(fg)
 
-            # 경로: C→C & 마지막 C→D
-            for i in range(len(coords)):
-                start = coords[i]
-                end = coords[i+1] if i < len(coords)-1 else (d_pt.y, d_pt.x)
-                tooltip = (
-                    f"C{c_pts.iloc[i]['stop_seq']} → "
-                    + (f"C{c_pts.iloc[i+1]['stop_seq']}" if i < len(coords)-1 else "D")
-                )
-                res = requests.get(
-                    f"https://api.mapbox.com/directions/v5/mapbox/driving/"
-                    f"{start[1]},{start[0]};{end[1]},{end[0]}",
-                    params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
-                )
-                res.raise_for_status()
-                seg = LineString(res.json()["routes"][0]["geometry"]["coordinates"])
+            folium.Marker((c.y, c.x), icon=c_icon).add_to(fg)
+            folium.Marker((d.y, d.x), icon=d_icon).add_to(fg)
 
-                GeoJson(
-                    seg,
-                    tooltip=tooltip,
-                    style_function=lambda feat, col=palette[i % len(palette)]: {
-                        "color": col, "weight": 5
-                    }
-                ).add_to(fg)
+            # 경로 그리기
+            res = requests.get(
+                f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}",
+                params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
+            )
+            res.raise_for_status()
+            coords = res.json()["routes"][0]["geometry"]["coordinates"]
+            GeoJson(
+                LineString(coords),
+                style_function=lambda feat, col=color: {"color": col, "weight": 5},
+                tooltip=f"C{idx+1} → D"
+            ).add_to(fg)
 
-            fg.add_to(m)
-            render_map(m)
-        except Exception as e:
-            st.error(f"[{title} 에러] {e}")
+        fg.add_to(m)
+        render_map(m)
+
+    except Exception as e:
+        st.error(f"[ASIS 에러] {e}")
+
+# TO-BE
+with col2:
+    st.markdown("#### TO-BE ➡ 개선 경로")
+    try:
+        grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
+        c_pts = grp[grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
+        d = grp[grp["location_t"] == "D"].iloc[0].geometry
+
+        m = Map(
+            location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
+            zoom_start=12,
+            tiles=COMMON_TILE
+        )
+        fg = FeatureGroup(name="TOBE")
+
+        coords = []
+        for idx, row in c_pts.iterrows():
+            color = palette[idx % len(palette)]
+            pt = row.geometry
+            coords.append((pt.y, pt.x))
+
+            c_icon = BeautifyIcon(
+                icon="map-pin", icon_shape="marker",
+                background_color=color, border_color="#fff",
+                text_color="#fff", number=row["stop_seq"]
+            )
+            folium.Marker((pt.y, pt.x), icon=c_icon).add_to(fg)
+
+        # D 아이콘
+        d_icon = BeautifyIcon(
+            icon="flag-checkered", icon_shape="marker",
+            background_color="#000", border_color="#fff",
+            text_color="#fff"
+        )
+        folium.Marker((d.y, d.x), icon=d_icon).add_to(fg)
+
+        # C→C and C→D
+        for i in range(len(coords)):
+            start = coords[i]
+            end = coords[i+1] if i < len(coords)-1 else (d.y, d.x)
+            color = palette[i % len(palette)]
+            tooltip = (
+                f"C{c_pts.loc[i,'stop_seq']} → "
+                + (f"C{c_pts.loc[i+1,'stop_seq']}" if i < len(coords)-1 else "D")
+            )
+
+            res = requests.get(
+                f"https://api.mapbox.com/directions/v5/mapbox/driving/{start[1]},{start[0]};{end[1]},{end[0]}",
+                params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
+            )
+            res.raise_for_status()
+            seg = res.json()["routes"][0]["geometry"]["coordinates"]
+
+            GeoJson(
+                LineString(seg),
+                style_function=lambda feat, col=color: {"color": col, "weight": 5},
+                tooltip=tooltip
+            ).add_to(fg)
+
+        fg.add_to(m)
+        render_map(m)
+
+    except Exception as e:
+        st.error(f"[TOBE 에러] {e}")
