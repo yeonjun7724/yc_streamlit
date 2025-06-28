@@ -18,18 +18,18 @@ COMMON_TILE  = "CartoDB positron"
 # 컬러 팔레트
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
-# KPI 영역: 1행은 ASIS, 2행은 TOBE
-row1 = st.columns(4)
-row1[0].metric("ASIS 소요시간", "--",    help="기존 경로의 예상 소요시간")
-row1[1].metric("ASIS 물류비",   "--",    help="기존 경로의 예상 물류비용")
-row1[2].metric("ASIS 탄소배출량", "--",  help="기존 경로의 예상 CO₂ 배출량")
-row1[3].metric("ASIS 최단거리", "--",    help="기존 경로의 예상 최단거리")
+# KPI 영역: ASIS 첫줄, TOBE 둘째줄
+asis_cols = st.columns(4)
+asis_cols[0].metric("ASIS 소요시간",    "--", help="기존 경로의 예상 소요시간")
+asis_cols[1].metric("ASIS 최단거리",    "--", help="기존 경로의 예상 최단거리")
+asis_cols[2].metric("ASIS 물류비",      "--", help="기존 경로의 예상 물류비용")
+asis_cols[3].metric("ASIS 탄소배출량",  "--", help="기존 경로의 예상 CO₂ 배출량")
 
-row2 = st.columns(4)
-row2[0].metric("TOBE 소요시간", "--",    help="개선 경로의 예상 소요시간")
-row2[1].metric("TOBE 물류비",   "--",    help="개선 경로의 예상 물류비용")
-row2[2].metric("TOBE 탄소배출량", "--",  help="개선 경로의 예상 CO₂ 배출량")
-row2[3].metric("TOBE 최단거리", "--",    help="개선 경로의 예상 최단거리")
+tobe_cols = st.columns(4)
+tobe_cols[0].metric("TOBE 소요시간",    "--", help="개선 경로의 예상 소요시간")
+tobe_cols[1].metric("TOBE 최단거리",    "--", help="개선 경로의 예상 최단거리")
+tobe_cols[2].metric("TOBE 물류비",      "--", help="개선 경로의 예상 물류비용")
+tobe_cols[3].metric("TOBE 탄소배출량",  "--", help="개선 경로의 예상 CO₂ 배출량")
 
 st.markdown("---")
 
@@ -50,7 +50,7 @@ col1, col2 = st.columns(2, gap="large")
 with col1:
     st.markdown("#### ⬅ AS-IS 경로")
     try:
-        grp  = gdf_asis[gdf_asis["sorting_id"] == selected_id]
+        grp   = gdf_asis[gdf_asis["sorting_id"] == selected_id]
         c_pts = grp[grp["location_t"] == "C"].reset_index()
         d_pts = grp[grp["location_t"] == "D"].reset_index()
 
@@ -101,9 +101,9 @@ with col1:
 
 # TO-BE
 with col2:
-    st.markdown("#### TO-BE ➡ 개선 경로")
+    st.markdown("#### TOBE ➡ 개선 경로")
     try:
-        grp  = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
+        grp   = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
         c_pts = grp[grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
         d     = grp[grp["location_t"] == "D"].iloc[0].geometry
 
