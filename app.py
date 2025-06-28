@@ -72,14 +72,11 @@ with col1:
         c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
         d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
 
-        # 각 구간에 순번 표시
         for idx, crow in c_pts.iterrows():
             color = palette[idx % len(palette)]
             c = crow.geometry
-            # 다음 D 지점
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
-            # 시작 C 마커(숫자 포함)
             folium.map.Marker(
                 [c.y, c.x],
                 icon=DivIcon(
@@ -88,7 +85,6 @@ with col1:
                     html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
                 )
             ).add_to(fg)
-            # 도착 D 마커(숫자 포함)
             folium.map.Marker(
                 [d.y, d.x],
                 icon=DivIcon(
@@ -98,7 +94,6 @@ with col1:
                 )
             ).add_to(fg)
 
-            # 경로 선 그리기
             res = requests.get(
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}",
                 params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
@@ -113,7 +108,8 @@ with col1:
                 line  = LineString([(c.x, c.y), (d.x, d.y)])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
-            GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
+            gj = GeoJson(line, style_function=lambda _, s=style: s)
+            gj.add_to(fg)
 
         fg.add_to(m)
         render_map(m)
@@ -134,7 +130,6 @@ with col2:
         c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
         d_pt  = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
 
-        # C 지점 순번 마커
         for i, row in c_pts.iterrows():
             color = palette[i % len(palette)]
             folium.map.Marker(
@@ -146,7 +141,6 @@ with col2:
                 )
             ).add_to(fg)
 
-        # D 지점(최종)
         folium.map.Marker(
             [d_pt.y, d_pt.x],
             icon=DivIcon(
@@ -156,7 +150,6 @@ with col2:
             )
         ).add_to(fg)
 
-        # 각 구간 경로 + 순번 툴팁
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
             end   = (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1]) if i < len(c_pts)-1 else (d_pt.y, d_pt.x)
@@ -176,9 +169,9 @@ with col2:
                 line  = LineString([(start[1], start[0]), (end[1], end[0])])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
-            GeoJson(line, style_function=lambda _, s=style: s,
-                    tooltip=f"{i+1}: C→{'C' + str(c_pts.stop_seq.iloc[i+1]) if i < len(c_pts)-1 else 'D'}")
-            .add_to(fg)
+            tooltip_text = f"{i+1}: C→{'C' + str(c_pts.stop_seq.iloc[i+1]) if i < len(c_pts)-1 else 'D'}"
+            gj = GeoJson(line, style_function=lambda _, s=style: s, tooltip=tooltip_text)
+            gj.add_to(fg)
 
         fg.add_to(m)
         render_map(m)
