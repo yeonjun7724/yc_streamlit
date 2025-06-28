@@ -66,7 +66,7 @@ params = {
 
 col1, col2 = st.columns(2, gap="large")
 
-# ── AS-IS 경로: TOBE 순서로 C→D 페어 매칭 & 모든 구간 표현
+# ── AS-IS 경로: 모든 C→D 페어
 with col1:
     st.markdown("#### 현재 (AS-IS)")
     try:
@@ -76,32 +76,22 @@ with col1:
         )
         fg = FeatureGroup(name="ASIS")
 
-        # TOBE의 C 순서 따라 가져오기
-        tobe_c_pts = (
-            tobe_grp[tobe_grp["location_t"] == "C"]
-            .sort_values("stop_seq")
-            .reset_index(drop=True)
-        )
-
-        # ASIS의 C, D 포인트
+        # ASIS의 C, D 포인트 전체
         asis_c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index(drop=True)
         asis_d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index(drop=True)
 
-        for idx, tobe_row in tobe_c_pts.iterrows():
+        for idx, crow in asis_c_pts.iterrows():
             color = palette[idx % len(palette)]
-            # TOBE C 좌표 → ASIS C 포인트 매칭
-            c_geom = tobe_row.geometry
-            crow = asis_c_pts.loc[asis_c_pts.geometry.distance(c_geom).idxmin()]
+            c = crow.geometry
+            # 각 C마다 가장 가까운 D와 매칭
+            d = asis_d_pts.loc[asis_d_pts.geometry.distance(c).idxmin()].geometry
 
-            # 해당 C에 가장 가까운 D
-            d_geom = asis_d_pts.loc[asis_d_pts.geometry.distance(crow.geometry).idxmin()].geometry
-
-            # 시작 마커
+            # 시작 마커 (숫자)
             folium.map.Marker(
-                [crow.geometry.y, crow.geometry.x],
+                [c.y, c.x],
                 icon=DivIcon(
-                    icon_size=(30, 30),
-                    icon_anchor=(15, 15),
+                    icon_size=(30,30),
+                    icon_anchor=(15,15),
                     html=(
                         f'<div style="font-size:14px; color:#fff; background:{color}; '
                         'border-radius:50%; width:30px; height:30px; text-align:center; '
@@ -110,16 +100,16 @@ with col1:
                 )
             ).add_to(fg)
 
-            # 도착 마커
+            # 도착 마커 (flag)
             folium.Marker(
-                [d_geom.y, d_geom.x],
+                [d.y, d.x],
                 icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)
             ).add_to(fg)
 
-            # Mapbox 호출 & 그리기
+            # Mapbox 호출 및 선 그리기
             url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
-                f"{crow.geometry.x},{crow.geometry.y};{d_geom.x},{d_geom.y}"
+                f"{c.x},{c.y};{d.x},{d.y}"
             )
             res = requests.get(url, params=params)
             routes = res.json().get("routes") or []
@@ -129,10 +119,7 @@ with col1:
                 line = LineString(coords)
                 style = {"color": color, "weight": 5}
             else:
-                line = LineString([
-                    (crow.geometry.x, crow.geometry.y),
-                    (d_geom.x, d_geom.y)
-                ])
+                line = LineString([(c.x, c.y), (d.x, d.y)])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
@@ -143,7 +130,7 @@ with col1:
     except Exception as e:
         st.error(f"[ASIS 에러] {e}")
 
-# ── TO-BE 경로
+# ── TO-BE 경로: 순서 반전
 with col2:
     st.markdown("#### 공동운송 도입 후 (TO-BE)")
     try:
@@ -153,12 +140,13 @@ with col2:
         )
         fg = FeatureGroup(name="TOBE")
 
+        # stop_seq 내림차순으로 정렬해 역순으로 표시
         c_pts = (
             tobe_grp[tobe_grp["location_t"] == "C"]
-            .sort_values("stop_seq")
+            .sort_values("stop_seq", ascending=False)
             .reset_index(drop=True)
         )
-        d_pt = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
+        d_pt  = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
         d_color = palette[(len(c_pts)-1) % len(palette)]
 
         # C 마커
@@ -167,8 +155,8 @@ with col2:
             folium.map.Marker(
                 [row.geometry.y, row.geometry.x],
                 icon=DivIcon(
-                    icon_size=(30, 30),
-                    icon_anchor=(15, 15),
+                    icon_size=(30,30),
+                    icon_anchor=(15,15),
                     html=(
                         f'<div style="font-size:14px; color:#fff; background:{color}; '
                         'border-radius:50%; width:30px; height:30px; text-align:center; '
@@ -183,7 +171,7 @@ with col2:
             icon=folium.Icon(icon="flag-checkered", prefix="fa", color=d_color)
         ).add_to(fg)
 
-        # 경로 그리기
+        # 역순으로 C→다음 C 또는 D 연결
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
             end = (
@@ -207,10 +195,7 @@ with col2:
                 line = LineString([(start[1], start[0]), (end[1], end[0])])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
-            tooltip_text = (
-                f"{i+1}: C→"
-                f"{'C'+str(c_pts.stop_seq.iloc[i+1]) if i < len(c_pts)-1 else 'D'}"
-            )
+            tooltip_text = f"{i+1}: → {'D' if i == len(c_pts)-1 else 'C'+str(c_pts.stop_seq.iloc[i+1])}"
             GeoJson(line, style_function=lambda _, s=style: s, tooltip=tooltip_text).add_to(fg)
 
         fg.add_to(m)
