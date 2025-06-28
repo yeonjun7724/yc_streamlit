@@ -58,35 +58,47 @@ def render_map(m, height=600):
 
 # 공통 Mapbox 파라미터
 params = {
-    "geometries":    "geojson",
-    "overview":      "full",
-    "steps":         "true",
-    "access_token":  MAPBOX_TOKEN
+    "geometries":   "geojson",
+    "overview":     "full",
+    "steps":        "true",
+    "access_token": MAPBOX_TOKEN
 }
 
 col1, col2 = st.columns(2, gap="large")
 
-# ── AS-IS 경로 (C→D 페어 매칭)
+# ── AS-IS 경로: TOBE 순서로 C→D 페어 매칭 & 모든 구간 표현
 with col1:
-    st.markdown("#### 현재")
+    st.markdown("#### 현재 (AS-IS)")
     try:
         m = Map(
             location=[asis_grp.geometry.y.mean(), asis_grp.geometry.x.mean()],
-            zoom_start=12,
-            tiles=COMMON_TILE
+            zoom_start=12, tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="ASIS")
 
-        c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index(drop=True)
-        d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index(drop=True)
+        # TOBE의 C 순서 따라 가져오기
+        tobe_c_pts = (
+            tobe_grp[tobe_grp["location_t"] == "C"]
+            .sort_values("stop_seq")
+            .reset_index(drop=True)
+        )
 
-        for idx, crow in c_pts.iterrows():
+        # ASIS의 C, D 포인트
+        asis_c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index(drop=True)
+        asis_d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index(drop=True)
+
+        for idx, tobe_row in tobe_c_pts.iterrows():
             color = palette[idx % len(palette)]
-            c = crow.geometry
-            d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
+            # TOBE C 좌표 → ASIS C 포인트 매칭
+            c_geom = tobe_row.geometry
+            crow = asis_c_pts.loc[asis_c_pts.geometry.distance(c_geom).idxmin()]
 
+            # 해당 C에 가장 가까운 D
+            d_geom = asis_d_pts.loc[asis_d_pts.geometry.distance(crow.geometry).idxmin()].geometry
+
+            # 시작 마커
             folium.map.Marker(
-                [c.y, c.x],
+                [crow.geometry.y, crow.geometry.x],
                 icon=DivIcon(
                     icon_size=(30, 30),
                     icon_anchor=(15, 15),
@@ -98,14 +110,16 @@ with col1:
                 )
             ).add_to(fg)
 
+            # 도착 마커
             folium.Marker(
-                [d.y, d.x],
+                [d_geom.y, d_geom.x],
                 icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)
             ).add_to(fg)
 
+            # Mapbox 호출 & 그리기
             url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
-                f"{c.x},{c.y};{d.x},{d.y}"
+                f"{crow.geometry.x},{crow.geometry.y};{d_geom.x},{d_geom.y}"
             )
             res = requests.get(url, params=params)
             routes = res.json().get("routes") or []
@@ -115,7 +129,10 @@ with col1:
                 line = LineString(coords)
                 style = {"color": color, "weight": 5}
             else:
-                line = LineString([(c.x, c.y), (d.x, d.y)])
+                line = LineString([
+                    (crow.geometry.x, crow.geometry.y),
+                    (d_geom.x, d_geom.y)
+                ])
                 style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
@@ -128,19 +145,23 @@ with col1:
 
 # ── TO-BE 경로
 with col2:
-    st.markdown("#### 공동운송 도입 후")
+    st.markdown("#### 공동운송 도입 후 (TO-BE)")
     try:
         m = Map(
             location=[tobe_grp.geometry.y.mean(), tobe_grp.geometry.x.mean()],
-            zoom_start=12,
-            tiles=COMMON_TILE
+            zoom_start=12, tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="TOBE")
 
-        c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index(drop=True)
-        d_pt  = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
+        c_pts = (
+            tobe_grp[tobe_grp["location_t"] == "C"]
+            .sort_values("stop_seq")
+            .reset_index(drop=True)
+        )
+        d_pt = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
         d_color = palette[(len(c_pts)-1) % len(palette)]
 
+        # C 마커
         for i, row in c_pts.iterrows():
             color = palette[i % len(palette)]
             folium.map.Marker(
@@ -156,11 +177,13 @@ with col2:
                 )
             ).add_to(fg)
 
+        # D 마커
         folium.Marker(
             [d_pt.y, d_pt.x],
             icon=folium.Icon(icon="flag-checkered", prefix="fa", color=d_color)
         ).add_to(fg)
 
+        # 경로 그리기
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
             end = (
