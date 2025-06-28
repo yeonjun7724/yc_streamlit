@@ -60,7 +60,7 @@ col1, col2 = st.columns(2, gap="large")
 
 # ── AS-IS 경로
 with col1:
-    st.markdown("#### ⬅ AS-IS 경로")
+    st.markdown("#### 현재")
     try:
         m = Map(
             location=[asis_grp.geometry.y.mean(), asis_grp.geometry.x.mean()],
@@ -111,7 +111,7 @@ with col1:
 
 # ── TO-BE 경로
 with col2:
-    st.markdown("#### TO-BE ➡ 개선 경로")
+    st.markdown("#### 공동운송 도입 후")
     try:
         m = Map(
             location=[tobe_grp.geometry.y.mean(), tobe_grp.geometry.x.mean()],
