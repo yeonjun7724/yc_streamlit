@@ -141,7 +141,7 @@ with col2:
         )
         folium.Marker(location=(d_pt.y, d_pt.x), icon=d_icon).add_to(fg)
 
-        # C→C & C→D 경로 (AS-IS와 완전히 동일한 스타일)
+        # C→C & C→D 경로
         for i in range(len(coords)):
             if i < len(coords) - 1:
                 start, end = coords[i], coords[i+1]
@@ -150,9 +150,11 @@ with col2:
                 start, end = coords[i], (d_pt.y, d_pt.x)
                 tooltip = f"C{c_pts.iloc[i]['stop_seq']} → D"
 
+            lon1, lat1 = start[1], start[0]
+            lon2, lat2 = end[1], end[0]
             url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
-                f"{start[1]},{start[0]};{end[1]},{end[0]}"
+                f"{lon1},{lat1};{lon2},{lat2}"
             )
             res = requests.get(url, params={
                 "geometries": "geojson",
@@ -162,12 +164,11 @@ with col2:
             res.raise_for_status()
             seg = LineString(res.json()["routes"][0]["geometry"]["coordinates"])
 
-            # AS-IS와 동일하게 solid line, same weight
             GeoJson(
                 seg,
                 tooltip=tooltip,
                 style_function=lambda feat, col=palette[i % len(palette)]: {
-                    "color": col, "weight": 5
+                    "color": col, "weight": 5, "dashArray": "5, 5"
                 }
             ).add_to(fg)
 
