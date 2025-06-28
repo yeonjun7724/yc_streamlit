@@ -3,7 +3,8 @@ import geopandas as gpd
 import requests
 from shapely.geometry import LineString
 import folium
-from folium import Map, FeatureGroup, CircleMarker, GeoJson
+from folium import Map, FeatureGroup, GeoJson
+from folium.plugins import BeautifyIcon
 from streamlit.components.v1 import html
 
 # 와이드 레이아웃
@@ -13,41 +14,46 @@ MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVyd
 ASIS_PATH = "cb_asis_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 
-# 컬러 팔레트 (8가지)
+# 컬러 팔레트
 palette = [
-    "#e41a1c", "#377eb8", "#4daf4a", "#984ea3",
-    "#ff7f00", "#ffff33", "#a65628", "#f781bf"
+    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
 ]
+
+# KPI 영역
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("ASIS 소요시간", "--", help="기존 경로의 예상 소요시간")
+k2.metric("TOBE 소요시간", "--", help="개선 경로의 예상 소요시간")
+k3.metric("물류비", "--", help="예상 물류비용")
+k4.metric("탄소배출량", "--", help="예상 CO₂ 배출량")
+
+st.markdown("---")  # 구분선
 
 # 데이터 로드
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
 
-# KPI 칸 4개
-k1, k2, k3, k4 = st.columns(4)
-k1.metric("ASIS 소요시간", "--")
-k2.metric("TOBE 소요시간", "--")
-k3.metric("물류비", "--")
-k4.metric("탄소배출량", "--")
-
-# 경로 선택 박스
+# 경로 선택
 common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
 selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 
-# Folium 맵 렌더링 함수
 def render_map(m, height=600):
     html(m.get_root().render(), height=height)
 
-# 두 개의 컬럼에 AS-IS / TO-BE 맵
 col1, col2 = st.columns(2, gap="large")
 
 with col1:
-    st.markdown("### ⬅ AS-IS")
+    st.markdown("#### ⬅ AS-IS 경로")
     try:
         grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
         c_pts = grp[grp["location_t"] == "C"]
         d_pts = grp[grp["location_t"] == "D"]
-        m = Map(location=[grp.geometry.y.mean(), grp.geometry.x.mean()], zoom_start=12)
+        m = Map(
+            location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
+            zoom_start=12,
+            tiles="CartoDB positron",
+            attr="CartoDB Positron"
+        )
         fg = FeatureGroup(name=f"ASIS {selected_id}")
 
         for idx, (_, crow) in enumerate(c_pts.iterrows()):
@@ -57,24 +63,23 @@ with col1:
             d_idx = d_pts.geometry.distance(c).idxmin()
             d = d_pts.loc[d_idx].geometry
 
-            c_ll = (c.y, c.x)
-            d_ll = (d.y, d.x)
+            # 포인트 아이콘
+            c_icon = BeautifyIcon(
+                icon="truck", icon_shape="marker",
+                background_color=color, border_color="#ffffff",
+                text_color="#ffffff", number=idx+1
+            )
+            d_icon = BeautifyIcon(
+                icon="industry", icon_shape="marker",
+                background_color=color, border_color="#ffffff",
+                text_color="#ffffff"
+            )
 
-            # 세련된 원형 마커
-            CircleMarker(
-                location=c_ll, radius=8,
-                color="white", weight=2,
-                fill=True, fill_color=color, fill_opacity=0.9,
-                tooltip=f"C ({idx+1})"
-            ).add_to(fg)
-            CircleMarker(
-                location=d_ll, radius=8,
-                color="white", weight=2,
-                fill=True, fill_color=color, fill_opacity=0.9,
-                tooltip="D"
-            ).add_to(fg)
+            # 마커 추가
+            folium.Marker(location=(c.y, c.x), icon=c_icon).add_to(fg)
+            folium.Marker(location=(d.y, d.x), icon=d_icon).add_to(fg)
 
-            # Mapbox 경로 요청
+            # Mapbox 경로
             url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
                 f"{c.x},{c.y};{d.x},{d.y}"
@@ -88,12 +93,11 @@ with col1:
             coords = res.json()["routes"][0]["geometry"]["coordinates"]
             line = LineString(coords)
 
-            # 컬러 라인
             GeoJson(
                 line,
-                tooltip="C → D",
+                tooltip=f"C{idx+1} → D",
                 style_function=lambda feat, col=color: {
-                    "color": col, "weight": 4
+                    "color": col, "weight": 5
                 }
             ).add_to(fg)
 
@@ -103,43 +107,51 @@ with col1:
         st.error(f"[ASIS 에러] {e}")
 
 with col2:
-    st.markdown("### TO-BE ➡")
+    st.markdown("#### TO-BE ➡ 개선 경로")
     try:
         grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
         c_pts = grp[grp["location_t"] == "C"].sort_values("stop_seq", ascending=False)
         d_pt = grp[grp["location_t"] == "D"].iloc[0].geometry
 
-        m = Map(location=[grp.geometry.y.mean(), grp.geometry.x.mean()], zoom_start=12)
+        m = Map(
+            location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
+            zoom_start=12,
+            tiles="CartoDB dark_matter",
+            attr="CartoDB Dark Matter"
+        )
         fg = FeatureGroup(name=f"TOBE {selected_id}")
 
         coords = []
         for idx, (_, row) in enumerate(c_pts.iterrows()):
             color = palette[idx % len(palette)]
             pt = row.geometry
-            ll = (pt.y, pt.x)
-            coords.append(ll)
+            coords.append((pt.y, pt.x))
 
-            CircleMarker(
-                location=ll, radius=8,
-                color="white", weight=2,
-                fill=True, fill_color=color, fill_opacity=0.9,
-                tooltip=f"C{row['stop_seq']}"
-            ).add_to(fg)
+            c_icon = BeautifyIcon(
+                icon="map-pin", icon_shape="marker",
+                background_color=color, border_color="#ffffff",
+                text_color="#ffffff", number=row["stop_seq"]
+            )
+            folium.Marker(location=(pt.y, pt.x), icon=c_icon).add_to(fg)
 
-        # D 마커
-        d_ll = (d_pt.y, d_pt.x)
-        CircleMarker(
-            location=d_ll, radius=8,
-            color="white", weight=2,
-            fill=True, fill_color="#000000", fill_opacity=0.9,
-            tooltip="D"
-        ).add_to(fg)
+        d_icon = BeautifyIcon(
+            icon="flag-checkered", icon_shape="marker",
+            background_color="#000000", border_color="#ffffff",
+            text_color="#ffffff"
+        )
+        folium.Marker(location=(d_pt.y, d_pt.x), icon=d_icon).add_to(fg)
 
-        # C→C 경로
-        for i in range(len(coords) - 1):
-            color = palette[i % len(palette)]
-            lon1, lat1 = coords[i][1], coords[i][0]
-            lon2, lat2 = coords[i+1][1], coords[i+1][0]
+        # C→C & C→D 경로
+        for i in range(len(coords)):
+            if i < len(coords) - 1:
+                start, end = coords[i], coords[i+1]
+                tooltip = f"C{c_pts.iloc[i]['stop_seq']} → C{c_pts.iloc[i+1]['stop_seq']}"
+            else:
+                start, end = coords[i], (d_pt.y, d_pt.x)
+                tooltip = f"C{c_pts.iloc[i]['stop_seq']} → D"
+
+            lon1, lat1 = start[1], start[0]
+            lon2, lat2 = end[1], end[0]
             url = (
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/"
                 f"{lon1},{lat1};{lon2},{lat2}"
@@ -154,34 +166,11 @@ with col2:
 
             GeoJson(
                 seg,
-                tooltip=f"C{i+1} → C{i}",
-                style_function=lambda feat, col=color: {
-                    "color": col, "weight": 4
+                tooltip=tooltip,
+                style_function=lambda feat, col=palette[i % len(palette)]: {
+                    "color": col, "weight": 5, "dashArray": "5, 5"
                 }
             ).add_to(fg)
-
-        # 마지막 C→D 경로
-        lon1, lat1 = coords[-1][1], coords[-1][0]
-        lon2, lat2 = d_pt.x, d_pt.y
-        url = (
-            f"https://api.mapbox.com/directions/v5/mapbox/driving/"
-            f"{lon1},{lat1};{lon2},{lat2}"
-        )
-        res = requests.get(url, params={
-            "geometries": "geojson",
-            "overview": "simplified",
-            "access_token": MAPBOX_TOKEN
-        })
-        res.raise_for_status()
-        seg = LineString(res.json()["routes"][0]["geometry"]["coordinates"])
-
-        GeoJson(
-            seg,
-            tooltip="C → D",
-            style_function=lambda feat, col=palette[(len(coords)-1) % len(palette)]: {
-                "color": col, "weight": 4
-            }
-        ).add_to(fg)
 
         fg.add_to(m)
         render_map(m)
