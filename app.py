@@ -30,29 +30,29 @@ gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
 common_ids  = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
 selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 
-# KPI 계산
-asis_grp  = gdf_asis[gdf_asis["sorting_id"] == selected_id]
-tobe_grp  = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
+# 그룹별 데이터
+asis_grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
+tobe_grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
 
-# TOBE 소요시간: 마지막 C의 elapsed_mi
-c_grp     = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
-tobe_time = f"{c_grp['elapsed_mi'].iloc[-1]} 분" if not c_grp.empty else "--"
+# TOBE 소요시간: 마지막 C 지점의 elapsed_mi
+c_grp = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
+tobe_time = f"{c_grp['elapsed_mi'].iloc[-1]} 분" if not c_grp.empty and "elapsed_mi" in c_grp.columns else "--"
 
 # TOBE 최단거리: drive_dist 합계
-tobe_dist = round(tobe_grp["drive_dist"].sum(), 2) if "drive_dist" in tobe_grp else 0
+tobe_dist = round(tobe_grp["drive_dist"].sum(), 2) if "drive_dist" in tobe_grp.columns else 0
 
 # KPI 표시
 asis_cols = st.columns(4)
-asis_cols[0].metric("ASIS 소요시간",    "--",               help="기존 경로의 예상 소요시간")
-asis_cols[1].metric("ASIS 최단거리",    f"{asis_dist} km",  help="기존 경로의 실제 최단거리 합계")
-asis_cols[2].metric("ASIS 물류비",      "--",               help="기존 경로의 예상 물류비용")
-asis_cols[3].metric("ASIS 탄소배출량",  "--",               help="기존 경로의 예상 CO₂ 배출량")
+asis_cols[0].metric("ASIS 소요시간",   "--",                help="기존 경로의 예상 소요시간")
+asis_cols[1].metric("ASIS 물류비",     "--",                help="기존 경로의 예상 물류비용")
+asis_cols[2].metric("ASIS 탄소배출량", "--",                help="기존 경로의 예상 CO₂ 배출량")
+# asis_cols[3] left unused
 
 tobe_cols = st.columns(4)
-tobe_cols[0].metric("TOBE 소요시간",    tobe_time,          help="개선 경로의 실제 소요시간 (마지막 C의 elapsed_mi)")
-tobe_cols[1].metric("TOBE 최단거리",    f"{tobe_dist} km",  help="개선 경로의 실제 최단거리 합계")
-tobe_cols[2].metric("TOBE 물류비",      "--",               help="개선 경로의 예상 물류비용")
-tobe_cols[3].metric("TOBE 탄소배출량",  "--",               help="개선 경로의 예상 CO₂ 배출량")
+tobe_cols[0].metric("TOBE 소요시간",   tobe_time,           help="개선 경로의 실제 소요시간 (마지막 C의 elapsed_mi)")
+tobe_cols[1].metric("TOBE 최단거리",   f"{tobe_dist} km",   help="개선 경로의 실제 최단거리 합계")
+tobe_cols[2].metric("TOBE 물류비",     "--",                help="개선 경로의 예상 물류비용")
+tobe_cols[3].metric("TOBE 탄소배출량", "--",                help="개선 경로의 예상 CO₂ 배출량")
 
 st.markdown("---")
 
@@ -66,12 +66,11 @@ col1, col2 = st.columns(2, gap="large")
 with col1:
     st.markdown("#### ⬅ AS-IS 경로")
     try:
-        grp   = asis_grp
-        c_pts = grp[grp["location_t"] == "C"].reset_index()
-        d_pts = grp[grp["location_t"] == "D"].reset_index()
+        c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
+        d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
 
         m  = Map(
-            location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
+            location=[asis_grp.geometry.y.mean(), asis_grp.geometry.x.mean()],
             zoom_start=12,
             tiles=COMMON_TILE
         )
@@ -79,14 +78,13 @@ with col1:
 
         for idx, crow in c_pts.iterrows():
             color = palette[idx % len(palette)]
-            c     = crow.geometry
-            d     = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
+            c = crow.geometry
+            d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
             folium.Marker(
                 (c.y, c.x),
                 icon=BeautifyIcon(icon="map-pin",
                                   background_color=color,
-                                  border_color="#fff",
                                   text_color="#fff",
                                   number=idx+1)
             ).add_to(fg)
@@ -94,7 +92,6 @@ with col1:
                 (d.y, d.x),
                 icon=BeautifyIcon(icon="flag-checkered",
                                   background_color=color,
-                                  border_color="#fff",
                                   text_color="#fff")
             ).add_to(fg)
 
@@ -120,12 +117,11 @@ with col1:
 with col2:
     st.markdown("#### TOBE ➡ 개선 경로")
     try:
-        grp_t = tobe_grp
-        c_pts = grp_t[grp_t["location_t"] == "C"].sort_values("stop_seq").reset_index()
-        d     = grp_t[grp_t["location_t"] == "D"].iloc[0].geometry
+        c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
+        d     = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
 
         m  = Map(
-            location=[grp_t.geometry.y.mean(), grp_t.geometry.x.mean()],
+            location=[tobe_grp.geometry.y.mean(), tobe_grp.geometry.x.mean()],
             zoom_start=12,
             tiles=COMMON_TILE
         )
@@ -133,12 +129,11 @@ with col2:
 
         for idx, row in c_pts.iterrows():
             color = palette[idx % len(palette)]
-            pt    = row.geometry
+            pt = row.geometry
             folium.Marker(
                 (pt.y, pt.x),
                 icon=BeautifyIcon(icon="map-pin",
                                   background_color=color,
-                                  border_color="#fff",
                                   text_color="#fff",
                                   number=row["stop_seq"])
             ).add_to(fg)
@@ -147,7 +142,6 @@ with col2:
             (d.y, d.x),
             icon=BeautifyIcon(icon="flag-checkered",
                               background_color="#000",
-                              border_color="#fff",
                               text_color="#fff")
         ).add_to(fg)
 
