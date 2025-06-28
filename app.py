@@ -20,14 +20,16 @@ COMMON_TILE = "CartoDB positron"
 # 컬러 팔레트
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
-# KPI 영역
-k1, k2, k3, k4 = st.columns(4)
-k1.metric("ASIS 소요시간", "--")
-k2.metric("TOBE 소요시간", "--")
-k3.metric("물류비", "--")
-k4.metric("탄소배출량", "--")
+# KPI 영역 (총 6개)
+k1, k2, k3, k4, k5, k6 = st.columns(6)
+k1.metric("ASIS 소요시간", "--", help="기존 경로의 예상 소요시간")
+k2.metric("TOBE 소요시간", "--", help="개선 경로의 예상 소요시간")
+k3.metric("ASIS 물류비", "--", help="기존 경로의 예상 물류비용")
+k4.metric("TOBE 물류비", "--", help="개선 경로의 예상 물류비용")
+k5.metric("ASIS 탄소배출량", "--", help="기존 경로의 예상 CO₂ 배출량")
+k6.metric("TOBE 탄소배출량", "--", help="개선 경로의 예상 CO₂ 배출량")
 
-st.markdown("---")
+st.markdown("---")  # 구분선
 
 # 데이터 로드
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
