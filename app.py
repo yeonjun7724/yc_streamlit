@@ -5,10 +5,14 @@ import requests
 from shapely.geometry import LineString
 import pydeck as pdk
 
+# ✅ Mapbox 토큰 — 전역 설정으로 관리
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
+pdk.settings.mapbox_api_key = MAPBOX_TOKEN
+
 ASIS_PATH = "cb_asis_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 
+# --------- 📌 Mapbox Directions API (C → D) ---------
 def get_route(origin, destination):
     lon1, lat1 = origin[1], origin[0]
     lon2, lat2 = destination[1], destination[0]
@@ -23,6 +27,7 @@ def get_route(origin, destination):
     coords = res.json()["routes"][0]["geometry"]["coordinates"]
     return LineString(coords)
 
+# --------- 📌 Mapbox Optimization API (C → C → ... → D) ---------
 def get_optimized_route(waypoints):
     coords = ";".join([f"{lon},{lat}" for lat, lon in waypoints])
     url = f"https://api.mapbox.com/optimized-trips/v1/mapbox/driving/{coords}"
@@ -39,6 +44,7 @@ def get_optimized_route(waypoints):
     coords = res.json()["trips"][0]["geometry"]["coordinates"]
     return LineString(coords)
 
+# --------- 📌 데이터 불러오기 ---------
 @st.cache_data
 def load_data():
     gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
@@ -49,6 +55,7 @@ gdf_asis, gdf_tobe = load_data()
 common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
 selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 
+# --------- 📌 pydeck Layer 생성 ---------
 def create_pydeck_layers(points, line, label=""):
     scatter_data = []
     for p in points:
@@ -64,7 +71,7 @@ def create_pydeck_layers(points, line, label=""):
 
     line_layer = pdk.Layer(
         "LineLayer",
-        data=[{"path": [[c[0], c[1]] for c in line.coords]}],
+        data=[{"path": [[coord[0], coord[1]] for coord in line.coords]}],
         get_path="path",
         get_width=5,
         get_color=[0, 0, 255]
@@ -72,6 +79,7 @@ def create_pydeck_layers(points, line, label=""):
 
     return [scatter_layer, line_layer]
 
+# --------- 📌 AS-IS pydeck ---------
 def make_asis_pydeck(sorting_id):
     group = gdf_asis[gdf_asis["sorting_id"] == sorting_id]
     c_points = group[group["location_t"] == "C"]
@@ -97,12 +105,12 @@ def make_asis_pydeck(sorting_id):
     deck = pdk.Deck(
         layers=layers,
         initial_view_state=view_state,
-        map_style="mapbox://styles/mapbox/light-v10",
-        mapbox_key=MAPBOX_TOKEN
+        map_style="mapbox://styles/mapbox/light-v10"
     )
 
     return deck
 
+# --------- 📌 TO-BE pydeck ---------
 def make_tobe_pydeck(sorting_id):
     group = gdf_tobe[gdf_tobe["sorting_id"] == sorting_id]
     c_points = group[group["location_t"] == "C"].sort_values("stop_seq", ascending=False)
@@ -126,12 +134,12 @@ def make_tobe_pydeck(sorting_id):
     deck = pdk.Deck(
         layers=layers,
         initial_view_state=view_state,
-        map_style="mapbox://styles/mapbox/light-v10",
-        mapbox_key=MAPBOX_TOKEN
+        map_style="mapbox://styles/mapbox/light-v10"
     )
 
     return deck
 
+# --------- 📌 Streamlit Layout ---------
 col1, col2 = st.columns(2)
 
 with col1:
