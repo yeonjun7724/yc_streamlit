@@ -5,14 +5,14 @@ import requests
 from shapely.geometry import LineString
 import pydeck as pdk
 
-# ✅ Mapbox 토큰 — 전역 설정으로 관리
+# ✅ Mapbox 토큰 전역 설정
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 pdk.settings.mapbox_api_key = MAPBOX_TOKEN
 
 ASIS_PATH = "cb_asis_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 
-# --------- 📌 Mapbox Directions API (C → D) ---------
+# --------- 📌 단일 C → D ---------
 def get_route(origin, destination):
     lon1, lat1 = origin[1], origin[0]
     lon2, lat2 = destination[1], destination[0]
@@ -27,7 +27,7 @@ def get_route(origin, destination):
     coords = res.json()["routes"][0]["geometry"]["coordinates"]
     return LineString(coords)
 
-# --------- 📌 Mapbox Optimization API (C → C → ... → D) ---------
+# --------- 📌 다중 경유지 최적화 ---------
 def get_optimized_route(waypoints):
     coords = ";".join([f"{lon},{lat}" for lat, lon in waypoints])
     url = f"https://api.mapbox.com/optimized-trips/v1/mapbox/driving/{coords}"
@@ -57,9 +57,8 @@ selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 
 # --------- 📌 pydeck Layer 생성 ---------
 def create_pydeck_layers(points, line, label=""):
-    scatter_data = []
-    for p in points:
-        scatter_data.append({"lat": p[0], "lon": p[1], "label": label})
+    # points: [(lat, lon)]
+    scatter_data = [{"lat": p[0], "lon": p[1], "label": label} for p in points]
 
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
@@ -69,9 +68,11 @@ def create_pydeck_layers(points, line, label=""):
         get_radius=100
     )
 
+    # LineLayer expects [lon, lat]
+    path_coords = [[lon, lat] for lon, lat in line.coords]
     line_layer = pdk.Layer(
         "LineLayer",
-        data=[{"path": [[coord[0], coord[1]] for coord in line.coords]}],
+        data=[{"path": path_coords}],
         get_path="path",
         get_width=5,
         get_color=[0, 0, 255]
@@ -96,9 +97,13 @@ def make_asis_pydeck(sorting_id):
         route_line = get_route(c_latlon, d_latlon)
         layers += create_pydeck_layers([c_latlon, d_latlon], route_line, label="C")
 
+    lat_center = group.geometry.y.mean()
+    lon_center = group.geometry.x.mean()
+    st.write(f"AS-IS 중심좌표: lat={lat_center}, lon={lon_center}")
+
     view_state = pdk.ViewState(
-        latitude=group.geometry.y.mean(),
-        longitude=group.geometry.x.mean(),
+        latitude=lat_center,
+        longitude=lon_center,
         zoom=12
     )
 
@@ -123,11 +128,17 @@ def make_tobe_pydeck(sorting_id):
     waypoints = c_coords + [d_latlon]
     route_line = get_optimized_route(waypoints)
 
+    lat_center = group.geometry.y.mean()
+    lon_center = group.geometry.x.mean()
+    st.write(f"TO-BE 중심좌표: lat={lat_center}, lon={lon_center}")
+
+    st.write(f"TO-BE 경로 일부: {route_line.coords[:3]}")
+
     layers = create_pydeck_layers(waypoints, route_line, label="C")
 
     view_state = pdk.ViewState(
-        latitude=group.geometry.y.mean(),
-        longitude=group.geometry.x.mean(),
+        latitude=lat_center,
+        longitude=lon_center,
         zoom=12
     )
 
