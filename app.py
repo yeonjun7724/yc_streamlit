@@ -10,14 +10,16 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 
 # 상수
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1..."
+MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH    = "cb_asis_sample.shp"
 TOBE_PATH    = "cb_tobe_sample.shp"
 COMMON_TILE  = "CartoDB positron"
 
 # 컬러 팔레트
-palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-           "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
+palette = [
+    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
+]
 
 # 데이터 로드 (WGS84)
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
@@ -61,105 +63,101 @@ col1, col2 = st.columns(2, gap="large")
 # ── AS-IS 경로
 with col1:
     st.markdown("#### ⬅ AS-IS 경로")
-    try:
-        c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
-        d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
+    m = Map(
+        location=[asis_grp.geometry.y.mean(), asis_grp.geometry.x.mean()],
+        zoom_start=12, tiles=COMMON_TILE
+    )
+    fg = FeatureGroup(name="ASIS")
 
-        m  = Map(
-            location=[asis_grp.geometry.y.mean(), asis_grp.geometry.x.mean()],
-            zoom_start=12, tiles=COMMON_TILE
+    c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
+    d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
+
+    for idx, crow in c_pts.iterrows():
+        color = palette[idx % len(palette)]
+        c = crow.geometry
+        d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
+
+        # C 마커: 트럭 아이콘
+        folium.Marker(
+            (c.y, c.x),
+            icon=Icon(icon="truck", prefix="fa", color=color)
+        ).add_to(fg)
+
+        # D 마커: 깃발 아이콘
+        folium.Marker(
+            (d.y, d.x),
+            icon=Icon(icon="flag-checkered", prefix="fa", color=color)
+        ).add_to(fg)
+
+        # 경로 선: Mapbox → fallback 직선
+        res = requests.get(
+            f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}",
+            params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
         )
-        fg = FeatureGroup(name="ASIS")
+        data = res.json()
+        routes = data.get("routes") or []
+        if routes:
+            coords = routes[0]["geometry"]["coordinates"]
+            line = LineString(coords)
+            style = {"color": color, "weight": 5}
+        else:
+            # 경로 없을 때는 직선, 점선으로 표시
+            line = LineString([(c.x, c.y), (d.x, d.y)])
+            style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
-        for idx, crow in c_pts.iterrows():
-            color = palette[idx % len(palette)]
-            c = crow.geometry
-            d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
+        GeoJson(
+            line,
+            style_function=lambda feat, style=style: style,
+            tooltip=f"C{idx+1} → D"
+        ).add_to(fg)
 
-            # C 마커: 트럭 아이콘
-            folium.Marker(
-                (c.y, c.x),
-                icon=Icon(icon="truck", prefix="fa", color=color)
-            ).add_to(fg)
-
-            # D 마커: 깃발 아이콘
-            folium.Marker(
-                (d.y, d.x),
-                icon=Icon(icon="flag-checkered", prefix="fa", color=color)
-            ).add_to(fg)
-
-            # 경로 선
-            res = requests.get(
-                f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}",
-                params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
-            )
-            coords = res.json()["routes"][0]["geometry"]["coordinates"]
-
-            GeoJson(
-                LineString(coords),
-                style_function=lambda feat, col=color: {"color": col, "weight": 5},
-                tooltip=f"C{idx+1} → D"
-            ).add_to(fg)
-
-        fg.add_to(m)
-        render_map(m)
-
-    except Exception as e:
-        st.error(f"[ASIS 에러] {e}")
+    fg.add_to(m)
+    render_map(m)
 
 # ── TO-BE 경로
 with col2:
     st.markdown("#### TO-BE ➡ 개선 경로")
-    try:
-        c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
-        d     = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
+    m = Map(
+        location=[tobe_grp.geometry.y.mean(), tobe_grp.geometry.x.mean()],
+        zoom_start=12, tiles=COMMON_TILE
+    )
+    fg = FeatureGroup(name="TOBE")
 
-        m  = Map(
-            location=[tobe_grp.geometry.y.mean(), tobe_grp.geometry.x.mean()],
-            zoom_start=12, tiles=COMMON_TILE
-        )
-        fg = FeatureGroup(name="TOBE")
+    c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
+    d     = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
 
-        # C 지점 마커(트럭)
-        for _, row in c_pts.iterrows():
-            color = palette[row.name % len(palette)]
-            folium.Marker(
-                (row.geometry.y, row.geometry.x),
-                icon=Icon(icon="truck", prefix="fa", color=color)
-            ).add_to(fg)
-
-        # D 지점 마커(깃발)
+    # C 지점 마커(트럭)
+    for _, row in c_pts.iterrows():
+        color = palette[row.name % len(palette)]
         folium.Marker(
-            (d.y, d.x),
-            icon=Icon(icon="flag-checkered", prefix="fa", color="#000")
+            (row.geometry.y, row.geometry.x),
+            icon=Icon(icon="truck", prefix="fa", color=color)
         ).add_to(fg)
 
-        # 구간별 라인 연결
-        for i in range(len(c_pts)):
-            start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
-            end   = (
-                (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1])
-                if i < len(c_pts)-1 else (d.y, d.x)
-            )
-            color = palette[i % len(palette)]
+    # D 지점 마커(깃발)
+    folium.Marker(
+        (d.y, d.x),
+        icon=Icon(icon="flag-checkered", prefix="fa", color="#000")
+    ).add_to(fg)
 
-            res = requests.get(
-                f"https://api.mapbox.com/directions/v5/mapbox/driving/{start[1]},{start[0]};{end[1]},{end[0]}",
-                params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
-            )
-            coords = res.json()["routes"][0]["geometry"]["coordinates"]
+    # 구간별 라인 연결
+    for i in range(len(c_pts)):
+        start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
+        end   = (
+            (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1])
+            if i < len(c_pts)-1 else (d.y, d.x)
+        )
+        color = palette[i % len(palette)]
 
-            GeoJson(
-                LineString(coords),
-                style_function=lambda feat, col=color: {"color": col, "weight": 5},
-                tooltip=(
-                    f"C{c_pts.stop_seq.iloc[i]} → "
-                    + (f"C{c_pts.stop_seq.iloc[i+1]}" if i < len(c_pts)-1 else "D")
-                )
-            ).add_to(fg)
-
-        fg.add_to(m)
-        render_map(m)
-
-    except Exception as e:
-        st.error(f"[TOBE 에러] {e}")
+        res = requests.get(
+            f"https://api.mapbox.com/directions/v5/mapbox/driving/{start[1]},{start[0]};{end[1]},{end[0]}",
+            params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
+        )
+        data = res.json()
+        routes = data.get("routes") or []
+        if routes:
+            coords = routes[0]["geometry"]["coordinates"]
+            line = LineString(coords)
+            style = {"color": color, "weight": 5}
+        else:
+            line = LineString([(start[1], start[0]), (end[1], end[0])])
