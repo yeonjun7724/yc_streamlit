@@ -134,7 +134,6 @@ with col2:
         for idx, row in c_pts.iterrows():
             color = palette[idx % len(palette)]
             pt    = row.geometry
-
             folium.Marker(
                 (pt.y, pt.x),
                 icon=BeautifyIcon(icon="map-pin",
@@ -154,8 +153,7 @@ with col2:
 
         for i in range(len(c_pts)):
             start = (c_pts.geometry.y.iloc[i], c_pts.geometry.x.iloc[i])
-            end   = (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1]) \
-                    if i < len(c_pts)-1 else (d.y, d.x)
+            end   = (c_pts.geometry.y.iloc[i+1], c_pts.geometry.x.iloc[i+1]) if i < len(c_pts)-1 else (d.y, d.x)
             color = palette[i % len(palette)]
 
             res = requests.get(
@@ -176,5 +174,5 @@ with col2:
         fg.add_to(m)
         render_map(m)
 
-    except Exception as e):
+    except Exception as e:
         st.error(f"[TOBE 에러] {e}")
