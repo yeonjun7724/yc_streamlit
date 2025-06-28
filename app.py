@@ -16,14 +16,15 @@ TOBE_PATH    = "cb_tobe_sample.shp"
 COMMON_TILE  = "CartoDB positron"
 
 # 컬러 팔레트
-palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
+palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+           "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
 # 데이터 로드
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
 
 # 경로 선택
-common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
+common_ids  = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
 selected_id = st.selectbox("📌 경로 선택 (sorting_id)", common_ids)
 
 # KPI 영역: ASIS 첫줄, TOBE 둘째줄
@@ -34,13 +35,16 @@ asis_cols[2].metric("ASIS 물류비",      "--", help="기존 경로의 예상 �
 asis_cols[3].metric("ASIS 탄소배출량",  "--", help="기존 경로의 예상 CO₂ 배출량")
 
 tobe_cols = st.columns(4)
-tobe_cols[0].metric("TOBE 소요시간",    "--", help="개선 경로의 예상 소요시간")
-
-# TOBE 최단거리 계산
-tobe_group = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
-tobe_dist = round(tobe_group["drive_dist"].sum(), 2)
-tobe_cols[1].metric("TOBE 최단거리", f"{tobe_dist} km", help="개선 경로의 실제 최단거리 합계")
-
+# TOBE 소요시간: 마지막 C 지점의 elapsed_mi
+tobe_grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
+c_grp    = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq")
+if not c_grp.empty:
+    last_c_elapsed = c_grp["elapsed_mi"].iloc[-1]
+    tobe_time = f"{last_c_elapsed} 분"
+else:
+    tobe_time = "--"
+tobe_cols[0].metric("TOBE 소요시간",    tobe_time, help="개선 경로의 실제 소요시간 (마지막 C의 elapsed_mi)")
+tobe_cols[1].metric("TOBE 최단거리",    "--", help="개선 경로의 실제 최단거리 합계")
 tobe_cols[2].metric("TOBE 물류비",      "--", help="개선 경로의 예상 물류비용")
 tobe_cols[3].metric("TOBE 탄소배출량",  "--", help="개선 경로의 예상 CO₂ 배출량")
 
@@ -61,8 +65,7 @@ with col1:
 
         m  = Map(
             location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
-            zoom_start=12,
-            tiles=COMMON_TILE
+            zoom_start=12, tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="ASIS")
 
@@ -81,12 +84,12 @@ with col1:
                 background_color=color, border_color="#fff",
                 text_color="#fff"
             )
-
             folium.Marker((c.y, c.x), icon=c_icon).add_to(fg)
             folium.Marker((d.y, d.x), icon=d_icon).add_to(fg)
 
             res = requests.get(
-                f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}",
+                f"https://api.mapbox.com/directions/v5/mapbox/driving/"
+                f"{c.x},{c.y};{d.x},{d.y}",
                 params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
             )
             res.raise_for_status()
@@ -106,23 +109,22 @@ with col1:
 
 # TO-BE
 with col2:
-    st.markdown("#### TOBE ➡ 개선 경로")
+    st.markdown("#### TO-BE ➡ 개선 경로")
     try:
-        grp   = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
-        c_pts = grp[grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
-        d     = grp[grp["location_t"] == "D"].iloc[0].geometry
+        grp_t = tobe_grp
+        c_pts = grp_t[grp_t["location_t"] == "C"].sort_values("stop_seq").reset_index()
+        d     = grp_t[grp_t["location_t"] == "D"].iloc[0].geometry
 
         m  = Map(
-            location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
-            zoom_start=12,
-            tiles=COMMON_TILE
+            location=[grp_t.geometry.y.mean(), grp_t.geometry.x.mean()],
+            zoom_start=12, tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="TOBE")
 
         coords = []
         for idx, row in c_pts.iterrows():
             color = palette[idx % len(palette)]
-            pt = row.geometry
+            pt    = row.geometry
             coords.append((pt.y, pt.x))
 
             c_icon = BeautifyIcon(
@@ -149,7 +151,8 @@ with col2:
             )
 
             res = requests.get(
-                f"https://api.mapbox.com/directions/v5/mapbox/driving/{start[1]},{start[0]};{end[1]},{end[0]}",
+                f"https://api.mapbox.com/directions/v5/mapbox/driving/"
+                f"{start[1]},{start[0]};{end[1]},{end[0]}",
                 params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
             )
             res.raise_for_status()
