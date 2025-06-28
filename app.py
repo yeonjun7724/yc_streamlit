@@ -13,23 +13,25 @@ st.set_page_config(layout="wide")
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH    = "cb_asis_sample.shp"
 TOBE_PATH    = "cb_tobe_sample.shp"
-
-# 공통 배경지도
-COMMON_TILE = "CartoDB positron"
+COMMON_TILE  = "CartoDB positron"
 
 # 컬러 팔레트
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
 
-# KPI 영역 (총 6개)
-k1, k2, k3, k4, k5, k6 = st.columns(6)
-k1.metric("ASIS 소요시간", "--", help="기존 경로의 예상 소요시간")
-k2.metric("TOBE 소요시간", "--", help="개선 경로의 예상 소요시간")
-k3.metric("ASIS 물류비", "--", help="기존 경로의 예상 물류비용")
-k4.metric("TOBE 물류비", "--", help="개선 경로의 예상 물류비용")
-k5.metric("ASIS 탄소배출량", "--", help="기존 경로의 예상 CO₂ 배출량")
-k6.metric("TOBE 탄소배출량", "--", help="개선 경로의 예상 CO₂ 배출량")
+# KPI 영역: 1행은 ASIS, 2행은 TOBE
+row1 = st.columns(4)
+row1[0].metric("ASIS 소요시간", "--",    help="기존 경로의 예상 소요시간")
+row1[1].metric("ASIS 물류비",   "--",    help="기존 경로의 예상 물류비용")
+row1[2].metric("ASIS 탄소배출량", "--",  help="기존 경로의 예상 CO₂ 배출량")
+row1[3].metric("ASIS 최단거리", "--",    help="기존 경로의 예상 최단거리")
 
-st.markdown("---")  # 구분선
+row2 = st.columns(4)
+row2[0].metric("TOBE 소요시간", "--",    help="개선 경로의 예상 소요시간")
+row2[1].metric("TOBE 물류비",   "--",    help="개선 경로의 예상 물류비용")
+row2[2].metric("TOBE 탄소배출량", "--",  help="개선 경로의 예상 CO₂ 배출량")
+row2[3].metric("TOBE 최단거리", "--",    help="개선 경로의 예상 최단거리")
+
+st.markdown("---")
 
 # 데이터 로드
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
@@ -48,11 +50,11 @@ col1, col2 = st.columns(2, gap="large")
 with col1:
     st.markdown("#### ⬅ AS-IS 경로")
     try:
-        grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
+        grp  = gdf_asis[gdf_asis["sorting_id"] == selected_id]
         c_pts = grp[grp["location_t"] == "C"].reset_index()
         d_pts = grp[grp["location_t"] == "D"].reset_index()
 
-        m = Map(
+        m  = Map(
             location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
             zoom_start=12,
             tiles=COMMON_TILE
@@ -62,11 +64,8 @@ with col1:
         for idx, crow in c_pts.iterrows():
             color = palette[idx % len(palette)]
             c = crow.geometry
-            # 가장 가까운 D
-            d_idx = d_pts.geometry.distance(c).idxmin()
-            d = d_pts.loc[d_idx].geometry
+            d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
-            # 아이콘
             c_icon = BeautifyIcon(
                 icon="map-pin", icon_shape="marker",
                 background_color=color, border_color="#fff",
@@ -81,13 +80,13 @@ with col1:
             folium.Marker((c.y, c.x), icon=c_icon).add_to(fg)
             folium.Marker((d.y, d.x), icon=d_icon).add_to(fg)
 
-            # 경로 그리기
             res = requests.get(
                 f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}",
                 params={"geometries":"geojson","overview":"simplified","access_token":MAPBOX_TOKEN}
             )
             res.raise_for_status()
             coords = res.json()["routes"][0]["geometry"]["coordinates"]
+
             GeoJson(
                 LineString(coords),
                 style_function=lambda feat, col=color: {"color": col, "weight": 5},
@@ -104,11 +103,11 @@ with col1:
 with col2:
     st.markdown("#### TO-BE ➡ 개선 경로")
     try:
-        grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
+        grp  = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
         c_pts = grp[grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
-        d = grp[grp["location_t"] == "D"].iloc[0].geometry
+        d     = grp[grp["location_t"] == "D"].iloc[0].geometry
 
-        m = Map(
+        m  = Map(
             location=[grp.geometry.y.mean(), grp.geometry.x.mean()],
             zoom_start=12,
             tiles=COMMON_TILE
@@ -128,7 +127,6 @@ with col2:
             )
             folium.Marker((pt.y, pt.x), icon=c_icon).add_to(fg)
 
-        # D 아이콘
         d_icon = BeautifyIcon(
             icon="flag-checkered", icon_shape="marker",
             background_color="#000", border_color="#fff",
@@ -136,10 +134,9 @@ with col2:
         )
         folium.Marker((d.y, d.x), icon=d_icon).add_to(fg)
 
-        # C→C and C→D
         for i in range(len(coords)):
             start = coords[i]
-            end = coords[i+1] if i < len(coords)-1 else (d.y, d.x)
+            end   = coords[i+1] if i < len(coords)-1 else (d.y, d.x)
             color = palette[i % len(palette)]
             tooltip = (
                 f"C{c_pts.loc[i,'stop_seq']} → "
