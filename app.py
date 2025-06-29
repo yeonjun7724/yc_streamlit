@@ -70,7 +70,7 @@ with col1:
     try:
         m = Map(
             location=[current_grp.geometry.y.mean(), current_grp.geometry.x.mean()],
-            zoom_start=9,  # 줌 한 단계 아웃
+            zoom_start=9,  # 👈 한 단계 줌 아웃
             tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="현재")
@@ -85,11 +85,13 @@ with col1:
             c = crow.geometry
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
+            # 농가 (C)
             folium.Marker([c.y, c.x], icon=DivIcon(
                 icon_size=(30,30), icon_anchor=(15,15),
                 html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
             )).add_to(fg)
 
+            # 도축장 (D)
             folium.Marker([d.y, d.x], icon=folium.Icon(icon="industry", prefix="fa", color="black")).add_to(fg)
 
             url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}"
@@ -112,12 +114,12 @@ with col1:
         legend_html = f"""
         <div style="
             position: fixed;
-            bottom: 50px; left: 50px; width: 180px; height: auto;
+            bottom: 50px; left: 50px; width: 200px; height: auto;
             border:2px solid grey; z-index:9999; font-size:14px;
             background-color:white; padding: 10px;">
             <b>범례</b><br>
-            <i style="background:{palette[0]};width:20px;height:20px;float:left;margin-right:5px; border-radius:50%;"></i> 농가(C)<br>
-            <i class="fa fa-industry" style="color:black;margin-right:5px;"></i> 도축장(D)
+            <i style="background:{palette[0]};width:20px;height:20px;float:left;margin-right:5px; border-radius:50%;"></i> 농가 (C)<br>
+            <i class="fa fa-industry" style="color:black;margin-right:5px;"></i> 도축장 (D)
         </div>
         """
         m.get_root().html.add_child(folium.Element(legend_html))
@@ -141,7 +143,7 @@ with col2:
     try:
         m = Map(
             location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()],
-            zoom_start=9,  # 줌 한 단계 아웃
+            zoom_start=9,  # 👈 한 단계 줌 아웃
             tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="다타소")
@@ -175,7 +177,6 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # 동일한 범례 추가
         m.get_root().html.add_child(folium.Element(legend_html))
 
         fg.add_to(m)
