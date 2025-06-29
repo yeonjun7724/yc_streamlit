@@ -87,7 +87,7 @@ with col1:
                 html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
             )).add_to(fg)
 
-            folium.Marker([d.y, d.x], icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)).add_to(fg)
+            folium.Marker([d.y, d.x], icon=folium.Icon(icon="flag-checkered", prefix="fa", color="red")).add_to(fg)
 
             url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}"
             res = requests.get(url, params=params)
@@ -105,15 +105,20 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ✅ 현재 지도 범례 (농가/도축장)
+        # ✅ 현재 지도 범례 (우상단)
+        legend_items = ""
+        for idx in range(len(c_pts)):
+            legend_items += f"""
+                <i style="background:{palette[idx % len(palette)]};width:20px;height:20px;float:left;margin-right:5px; border-radius:50%;"></i> 농가 {idx+1}<br>
+            """
         legend_html_current = f"""
         <div style="position: fixed; 
-                    bottom: 50px; left: 50px; width: 200px; height: auto; 
+                    top: 50px; right: 50px; width: 150px; height: auto; 
                     border:2px solid grey; z-index:9999; font-size:14px;
                     background-color:white; padding: 10px;">
             <b>범례</b><br>
-            <i style="background:{palette[0]};width:20px;height:20px;float:left;margin-right:5px; border-radius:50%;"></i> 농가 (순번)<br>
-            <i class="fa fa-flag-checkered" style="color:black;margin-right:5px;"></i> 도축장
+            {legend_items}
+            <i class="fa fa-flag-checkered" style="color:red;margin-right:5px;"></i> 도축장
         </div>
         """
         m.get_root().html.add_child(folium.Element(legend_html_current))
@@ -149,7 +154,7 @@ with col2:
                 html=f'<div style="font-size:14px; color:#fff; background:{palette[i % len(palette)]}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{i+1}</div>'
             )).add_to(fg)
 
-        folium.Marker([d_pt.y, d_pt.x], icon=folium.Icon(icon="flag-checkered", prefix="fa", color=palette[-1])).add_to(fg)
+        folium.Marker([d_pt.y, d_pt.x], icon=folium.Icon(icon="flag-checkered", prefix="fa", color="red")).add_to(fg)
 
         for i in range(len(c_pts)):
             start = c_pts.geometry.iloc[i]
@@ -172,20 +177,53 @@ with col2:
         diff_cost     = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
         diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
 
-        dataso_cols[0].markdown(f"다타소 소요시간: {int(dataso_total_duration_sec // 60)}분 (절감: -{diff_duration}분)")
-        dataso_cols[1].markdown(f"다타소 최단거리: {round(dataso_total_distance_km, 2)}km (절감: -{diff_distance}km)")
-        dataso_cols[2].markdown(f"다타소 물류비: {int(dataso_total_distance_km*5000):,}원 (절감: -{diff_cost:,}원)")
-        dataso_cols[3].markdown(f"다타소 탄소배출량: {round(dataso_total_distance_km*0.65,2)}kg CO2 (절감: -{diff_emission}kg CO2)")
+        # ✅ 원래 스타일로 KPI 출력
+        dataso_cols[0].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span><br></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_duration} 분</div>
+            </div>
+        """, unsafe_allow_html=True)
 
-        # ✅ 다타소 지도 범례
+        dataso_cols[1].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 최단거리</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} <span style='font-size:18px;'>km</span><br></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_distance} km</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        dataso_cols[2].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 물류비</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} <span style='font-size:18px;'>원</span><br></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_cost:,} 원</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        dataso_cols[3].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 탄소배출량</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span><br></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_emission} kg CO2</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # ✅ 다타소 지도 범례 (우상단)
+        legend_items = ""
+        for idx in range(len(c_pts)):
+            legend_items += f"""
+                <i style="background:{palette[idx % len(palette)]};width:20px;height:20px;float:left;margin-right:5px; border-radius:50%;"></i> 농가 {idx+1}<br>
+            """
         legend_html_dataso = f"""
         <div style="position: fixed; 
-                    bottom: 50px; left: 50px; width: 200px; height: auto; 
+                    top: 50px; right: 50px; width: 150px; height: auto; 
                     border:2px solid grey; z-index:9999; font-size:14px;
                     background-color:white; padding: 10px;">
             <b>범례</b><br>
-            <i style="background:{palette[0]};width:20px;height:20px;float:left;margin-right:5px; border-radius:50%;"></i> 농가 (순번)<br>
-            <i class="fa fa-flag-checkered" style="color:black;margin-right:5px;"></i> 도축장
+            {legend_items}
+            <i class="fa fa-flag-checkered" style="color:red;margin-right:5px;"></i> 도축장
         </div>
         """
         m.get_root().html.add_child(folium.Element(legend_html_dataso))
