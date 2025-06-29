@@ -11,16 +11,20 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 
 # ───────────── 상단 로고 + 제목 ─────────────
-st.image("./image.jpg", width=100)
+logo_col, title_col, _ = st.columns([1, 10, 1])
 
-st.markdown(
-    """
-    <h2 style='text-align: center; color: #333;'>
-        지속가능한 축산물류를 위한 탄소저감형 가축운송 플랫폼
-    </h2>
-    """,
-    unsafe_allow_html=True
-)
+with logo_col:
+    st.image("./image.jpg", width=60)
+
+with title_col:
+    st.markdown(
+        """
+        <h2 style='color: #333; text-align: center;'>
+            지속가능한 축산물류를 위한 탄소저감형 가축운송 플랫폼
+        </h2>
+        """,
+        unsafe_allow_html=True
+    )
 
 # ───────────── 상수 ─────────────
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
@@ -34,7 +38,7 @@ gdf_current = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_dataso = gpd.read_file(TOBE_PATH).to_crs(4326)
 
 common_ids = sorted(set(gdf_current["sorting_id"]) & set(gdf_dataso["sorting_id"]))
-selected_id = st.selectbox("경로 선택 (sorting_id)", common_ids)
+selected_id = st.selectbox("경로 선택", common_ids)
 
 current_grp = gdf_current[gdf_current["sorting_id"] == selected_id]
 dataso_grp = gdf_dataso[gdf_dataso["sorting_id"] == selected_id]
@@ -130,9 +134,9 @@ with col1:
     except Exception as e:
         st.error(f"[현재 에러] {e}")
 
-# ───────────── 다타소(DaTaSo) 이용 시 경로 ─────────────
+# ───────────── 다타소(DaTaSo) 도입 후 경로 ─────────────
 with col2:
-    st.markdown("#### 다타소(DaTaSo) 이용 시")
+    st.markdown("#### 다타소(DaTaSo) 도입 후")
     try:
         m = Map(location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()], zoom_start=12, tiles=COMMON_TILE)
         fg = FeatureGroup(name="다타소")
@@ -173,8 +177,8 @@ with col2:
 
         dataso_cols[0].markdown(f"""
             <div style='text-align:center;'>
-                <div style='font-size:14px; color:#333; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
-                <div style='font-size:32px; font-weight:bold; color:#333;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
+                <div style='font-size:32px; font-weight:bold; color:#333;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분 </span></div>
+                <div style='font-size:14px; color:#333; margin-top:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
                 <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_duration} 분</div>
             </div>
         """, unsafe_allow_html=True)
