@@ -31,7 +31,7 @@ st.markdown(
 )
 
 # ───────────── 상수 ─────────────
-MAPBOX_TOKEN = "pk.ey..."
+MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH = "cb_tobe_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
@@ -70,7 +70,7 @@ with col1:
     try:
         m = Map(
             location=[current_grp.geometry.y.mean(), current_grp.geometry.x.mean()],
-            zoom_start=9,  # 한 단계 더 줌 아웃
+            zoom_start=9,  # 줌 한 단계 아웃
             tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="현재")
@@ -124,13 +124,11 @@ with col1:
 
         fg.add_to(m)
 
-        # KPI 출력 동일...
-        current_cols[0].markdown(f"""
-            <div style='text-align:center;'>현재 소요시간<br>
-            <span style='font-size:32px;'>{int(current_total_duration_sec // 60)} 분</span></div>
-        """, unsafe_allow_html=True)
-
-        # 생략 (다른 KPI도 동일)
+        # KPI 출력
+        current_cols[0].markdown(f"<div style='text-align:center;'>현재 소요시간<br><span style='font-size:32px;'>{int(current_total_duration_sec // 60)} 분</span></div>", unsafe_allow_html=True)
+        current_cols[1].markdown(f"<div style='text-align:center;'>현재 최단거리<br><span style='font-size:32px;'>{round(current_total_distance_km,2)} km</span></div>", unsafe_allow_html=True)
+        current_cols[2].markdown(f"<div style='text-align:center;'>현재 물류비<br><span style='font-size:32px;'>{int(current_total_distance_km*5000):,} 원</span></div>", unsafe_allow_html=True)
+        current_cols[3].markdown(f"<div style='text-align:center;'>현재 탄소배출량<br><span style='font-size:32px;'>{round(current_total_distance_km*0.65,2)} kg CO2</span></div>", unsafe_allow_html=True)
 
         render_map(m)
 
@@ -143,7 +141,7 @@ with col2:
     try:
         m = Map(
             location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()],
-            zoom_start=9,  # 한 단계 더 줌 아웃
+            zoom_start=9,  # 줌 한 단계 아웃
             tiles=COMMON_TILE
         )
         fg = FeatureGroup(name="다타소")
@@ -182,8 +180,10 @@ with col2:
 
         fg.add_to(m)
 
-        # KPI 출력 동일...
         dataso_cols[0].markdown(f"<div style='text-align:center;'>다타소 소요시간<br><span style='font-size:32px;'>{int(dataso_total_duration_sec // 60)} 분</span></div>", unsafe_allow_html=True)
+        dataso_cols[1].markdown(f"<div style='text-align:center;'>다타소 최단거리<br><span style='font-size:32px;'>{round(dataso_total_distance_km,2)} km</span></div>", unsafe_allow_html=True)
+        dataso_cols[2].markdown(f"<div style='text-align:center;'>다타소 물류비<br><span style='font-size:32px;'>{int(dataso_total_distance_km*5000):,} 원</span></div>", unsafe_allow_html=True)
+        dataso_cols[3].markdown(f"<div style='text-align:center;'>다타소 탄소배출량<br><span style='font-size:32px;'>{round(dataso_total_distance_km*0.65,2)} kg CO2</span></div>", unsafe_allow_html=True)
 
         render_map(m)
 
