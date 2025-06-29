@@ -17,11 +17,11 @@ with open(file_path, "rb") as f:
     img_bytes = f.read()
 encoded = base64.b64encode(img_bytes).decode()
 
-# ───────────── 상단 로고 + 제목 (가운데 정렬, 붙임) ─────────────
+# ───────────── 상단 로고 + 제목 (가운데 정렬, 붙임, 로고 크기 확대) ─────────────
 st.markdown(
     f"""
     <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
-        <img src="data:image/png;base64,{encoded}" style='width: 120px; margin-right: 15px;'/>
+        <img src="data:image/png;base64,{encoded}" style='width: 180px; margin-right: 20px;'/>
         <h2 style='margin: 0; color: #333; text-align: center;'>
             지속가능한 축산물류를 위한 탄소저감형 가축운송 플랫폼
         </h2>
@@ -42,7 +42,7 @@ gdf_current = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_dataso = gpd.read_file(TOBE_PATH).to_crs(4326)
 
 common_ids = sorted(set(gdf_current["sorting_id"]) & set(gdf_dataso["sorting_id"]))
-selected_id = st.selectbox("경로 선택", common_ids)
+selected_id = st.selectbox("농가 선택", common_ids)
 
 current_grp = gdf_current[gdf_current["sorting_id"] == selected_id]
 dataso_grp = gdf_dataso[gdf_dataso["sorting_id"] == selected_id]
@@ -68,7 +68,8 @@ col1, col2 = st.columns(2, gap="large")
 with col1:
     st.markdown("#### 현재")
     try:
-        m = Map(location=[current_grp.geometry.y.mean(), current_grp.geometry.x.mean()], zoom_start=11, tiles=COMMON_TILE)  # 줌 한 단계 낮춤
+        m = Map(location=[current_grp.geometry.y.mean(), current_grp.geometry.x.mean()],
+                zoom_start=10, tiles=COMMON_TILE)
         fg = FeatureGroup(name="현재")
 
         c_pts = current_grp[current_grp["location_t"] == "C"].reset_index()
@@ -76,12 +77,12 @@ with col1:
 
         current_total_duration_sec, current_total_distance_km = 0, 0
 
-        for idx, crow in c_pts.iterrows():
+        for idx, crow in enumerate(c_pts.itertuples()):
             color = palette[idx % len(palette)]
             c = crow.geometry
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
-            folium.map.Marker([c.y, c.x], icon=DivIcon(
+            folium.Marker([c.y, c.x], icon=DivIcon(
                 icon_size=(30,30), icon_anchor=(15,15),
                 html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
             )).add_to(fg)
@@ -104,7 +105,20 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # 현재 KPI
+        # 범례 추가 (HTML)
+        legend_html = """
+        <div style="position: fixed; 
+                    bottom: 50px; left: 50px; width: 150px; height: 90px; 
+                    border:2px solid grey; z-index:9999; font-size:14px;
+                    background-color:white; padding: 10px;">
+            <b>범례</b><br>
+            <i style="background:{};width:20px;height:20px;float:left;margin-right:5px;"></i> 순번<br>
+            <i class="fa fa-flag-checkered" style="color:black;margin-right:5px;"></i> 도착지
+        </div>
+        """.format(palette[0])
+        m.get_root().html.add_child(folium.Element(legend_html))
+
+        # KPI 출력
         current_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div>
@@ -139,11 +153,12 @@ with col1:
     except Exception as e:
         st.error(f"[현재 에러] {e}")
 
-# ───────────── 다타소(DaTaSo) 도입 후 경로 ─────────────
+# ───────────── 다타소(DaTaSo) 도입 후 ─────────────
 with col2:
     st.markdown("#### 다타소(DaTaSo) 도입 후")
     try:
-        m = Map(location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()], zoom_start=11, tiles=COMMON_TILE)  # 줌 한 단계 낮춤
+        m = Map(location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()],
+                zoom_start=10, tiles=COMMON_TILE)
         fg = FeatureGroup(name="다타소")
 
         c_pts = dataso_grp[dataso_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
@@ -152,7 +167,7 @@ with col2:
         dataso_total_duration_sec, dataso_total_distance_km = 0, 0
 
         for i, row in c_pts.iterrows():
-            folium.map.Marker([row.geometry.y, row.geometry.x], icon=DivIcon(
+            folium.Marker([row.geometry.y, row.geometry.x], icon=DivIcon(
                 icon_size=(30,30), icon_anchor=(15,15),
                 html=f'<div style="font-size:14px; color:#fff; background:{palette[i % len(palette)]}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{i+1}</div>'
             )).add_to(fg)
