@@ -140,29 +140,17 @@ with col2:
         tobe_cols[2].metric("TOBE 물류비", f"{int(tobe_total_distance_km*5000):,} 원")
         tobe_cols[3].metric("TOBE 탄소배출량", f"{round(tobe_total_distance_km*0.65,2)} kg CO2")
 
-        # 🔴 차이값 KPI (빨간색, 작은 글씨)
+        # 🔴 KPI 밑에 '-' 표시한 차이값 (빨간색, 작은 글씨)
         diff_duration = int((asis_total_duration_sec - tobe_total_duration_sec) // 60)
         diff_distance = round(asis_total_distance_km - tobe_total_distance_km, 2)
         diff_cost     = int((asis_total_distance_km * 5000) - (tobe_total_distance_km * 5000))
         diff_emission = round((asis_total_distance_km * 0.65) - (tobe_total_distance_km * 0.65), 2)
 
         diff_cols = st.columns(4)
-        diff_cols[0].markdown(
-            f"<span style='color:red; font-size:12px;'>차이: {diff_duration} 분</span>",
-            unsafe_allow_html=True
-        )
-        diff_cols[1].markdown(
-            f"<span style='color:red; font-size:12px;'>차이: {diff_distance} km</span>",
-            unsafe_allow_html=True
-        )
-        diff_cols[2].markdown(
-            f"<span style='color:red; font-size:12px;'>차이: {diff_cost:,} 원</span>",
-            unsafe_allow_html=True
-        )
-        diff_cols[3].markdown(
-            f"<span style='color:red; font-size:12px;'>차이: {diff_emission} kg CO2</span>",
-            unsafe_allow_html=True
-        )
+        diff_cols[0].markdown(f"<span style='color:red; font-size:12px;'>- {diff_duration} 분</span>", unsafe_allow_html=True)
+        diff_cols[1].markdown(f"<span style='color:red; font-size:12px;'>- {diff_distance} km</span>", unsafe_allow_html=True)
+        diff_cols[2].markdown(f"<span style='color:red; font-size:12px;'>- {diff_cost:,} 원</span>", unsafe_allow_html=True)
+        diff_cols[3].markdown(f"<span style='color:red; font-size:12px;'>- {diff_emission} kg CO2</span>", unsafe_allow_html=True)
 
         fg.add_to(m)
         render_map(m)
