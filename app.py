@@ -17,7 +17,7 @@ with open(file_path, "rb") as f:
     img_bytes = f.read()
 encoded = base64.b64encode(img_bytes).decode()
 
-# ───────────── 상단 로고 + 제목 ─────────────
+# ───────────── 상단 로고 + 제목 (가운데 정렬, 붙임, 로고 크기 확대) ─────────────
 st.markdown(
     f"""
     <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
@@ -68,11 +68,8 @@ col1, col2 = st.columns(2, gap="large")
 with col1:
     st.markdown("#### 현재")
     try:
-        m = Map(
-            location=[current_grp.geometry.y.mean(), current_grp.geometry.x.mean()],
-            zoom_start=9,  # 👈 한 단계 줌 아웃
-            tiles=COMMON_TILE
-        )
+        m = Map(location=[current_grp.geometry.y.mean(), current_grp.geometry.x.mean()],
+                zoom_start=10, tiles=COMMON_TILE)
         fg = FeatureGroup(name="현재")
 
         c_pts = current_grp[current_grp["location_t"] == "C"].reset_index()
@@ -80,19 +77,17 @@ with col1:
 
         current_total_duration_sec, current_total_distance_km = 0, 0
 
-        for idx, crow in c_pts.iterrows():
+        for idx, crow in enumerate(c_pts.itertuples()):
             color = palette[idx % len(palette)]
             c = crow.geometry
             d = d_pts.loc[d_pts.geometry.distance(c).idxmin()].geometry
 
-            # 농가 (C)
             folium.Marker([c.y, c.x], icon=DivIcon(
                 icon_size=(30,30), icon_anchor=(15,15),
                 html=f'<div style="font-size:14px; color:#fff; background:{color}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{idx+1}</div>'
             )).add_to(fg)
 
-            # 도축장 (D)
-            folium.Marker([d.y, d.x], icon=folium.Icon(icon="industry", prefix="fa", color="black")).add_to(fg)
+            folium.Marker([d.y, d.x], icon=folium.Icon(icon="flag-checkered", prefix="fa", color=color)).add_to(fg)
 
             url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{c.x},{c.y};{d.x},{d.y}"
             res = requests.get(url, params=params)
@@ -110,28 +105,49 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ───────────── 범례 (농가/도축장) ─────────────
-        legend_html = f"""
-        <div style="
-            position: fixed;
-            bottom: 50px; left: 50px; width: 200px; height: auto;
-            border:2px solid grey; z-index:9999; font-size:14px;
-            background-color:white; padding: 10px;">
+        # 범례 추가 (HTML)
+        legend_html = """
+        <div style="position: fixed; 
+                    bottom: 50px; left: 50px; width: 150px; height: 90px; 
+                    border:2px solid grey; z-index:9999; font-size:14px;
+                    background-color:white; padding: 10px;">
             <b>범례</b><br>
-            <i style="background:{palette[0]};width:20px;height:20px;float:left;margin-right:5px; border-radius:50%;"></i> 농가 (C)<br>
-            <i class="fa fa-industry" style="color:black;margin-right:5px;"></i> 도축장 (D)
+            <i style="background:{};width:20px;height:20px;float:left;margin-right:5px;"></i> 순번<br>
+            <i class="fa fa-flag-checkered" style="color:black;margin-right:5px;"></i> 도착지
         </div>
-        """
+        """.format(palette[0])
         m.get_root().html.add_child(folium.Element(legend_html))
 
-        fg.add_to(m)
-
         # KPI 출력
-        current_cols[0].markdown(f"<div style='text-align:center;'>현재 소요시간<br><span style='font-size:32px;'>{int(current_total_duration_sec // 60)} 분</span></div>", unsafe_allow_html=True)
-        current_cols[1].markdown(f"<div style='text-align:center;'>현재 최단거리<br><span style='font-size:32px;'>{round(current_total_distance_km,2)} km</span></div>", unsafe_allow_html=True)
-        current_cols[2].markdown(f"<div style='text-align:center;'>현재 물류비<br><span style='font-size:32px;'>{int(current_total_distance_km*5000):,} 원</span></div>", unsafe_allow_html=True)
-        current_cols[3].markdown(f"<div style='text-align:center;'>현재 탄소배출량<br><span style='font-size:32px;'>{round(current_total_distance_km*0.65,2)} kg CO2</span></div>", unsafe_allow_html=True)
+        current_cols[0].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(current_total_duration_sec // 60)} <span style='font-size:18px;'>분</span><br></div>
+            </div>
+        """, unsafe_allow_html=True)
 
+        current_cols[1].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 최단거리</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km, 2)} <span style='font-size:18px;'>km</span><br></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        current_cols[2].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 물류비</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(current_total_distance_km*5000):,} <span style='font-size:18px;'>원</span><br></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        current_cols[3].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 탄소배출량</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span><br></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        fg.add_to(m)
         render_map(m)
 
     except Exception as e:
@@ -141,11 +157,8 @@ with col1:
 with col2:
     st.markdown("#### 다타소(DaTaSo) 도입 후")
     try:
-        m = Map(
-            location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()],
-            zoom_start=9,  # 👈 한 단계 줌 아웃
-            tiles=COMMON_TILE
-        )
+        m = Map(location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()],
+                zoom_start=10, tiles=COMMON_TILE)
         fg = FeatureGroup(name="다타소")
 
         c_pts = dataso_grp[dataso_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
@@ -159,7 +172,7 @@ with col2:
                 html=f'<div style="font-size:14px; color:#fff; background:{palette[i % len(palette)]}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{i+1}</div>'
             )).add_to(fg)
 
-        folium.Marker([d_pt.y, d_pt.x], icon=folium.Icon(icon="industry", prefix="fa", color="black")).add_to(fg)
+        folium.Marker([d_pt.y, d_pt.x], icon=folium.Icon(icon="flag-checkered", prefix="fa", color=palette[-1])).add_to(fg)
 
         for i in range(len(c_pts)):
             start = c_pts.geometry.iloc[i]
@@ -177,15 +190,44 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        m.get_root().html.add_child(folium.Element(legend_html))
+        diff_duration = int((current_total_duration_sec - dataso_total_duration_sec) // 60)
+        diff_distance = round(current_total_distance_km - dataso_total_distance_km, 2)
+        diff_cost     = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
+        diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
+
+        dataso_cols[0].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span><br></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_duration} 분</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        dataso_cols[1].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 최단거리</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} <span style='font-size:18px;'>km</span><br></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_distance} km</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        dataso_cols[2].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 물류비</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} <span style='font-size:18px;'>원</span><br></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_cost:,} 원</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        dataso_cols[3].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 탄소배출량</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span><br></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_emission} kg CO2</div>
+            </div>
+        """, unsafe_allow_html=True)
 
         fg.add_to(m)
-
-        dataso_cols[0].markdown(f"<div style='text-align:center;'>다타소 소요시간<br><span style='font-size:32px;'>{int(dataso_total_duration_sec // 60)} 분</span></div>", unsafe_allow_html=True)
-        dataso_cols[1].markdown(f"<div style='text-align:center;'>다타소 최단거리<br><span style='font-size:32px;'>{round(dataso_total_distance_km,2)} km</span></div>", unsafe_allow_html=True)
-        dataso_cols[2].markdown(f"<div style='text-align:center;'>다타소 물류비<br><span style='font-size:32px;'>{int(dataso_total_distance_km*5000):,} 원</span></div>", unsafe_allow_html=True)
-        dataso_cols[3].markdown(f"<div style='text-align:center;'>다타소 탄소배출량<br><span style='font-size:32px;'>{round(dataso_total_distance_km*0.65,2)} kg CO2</span></div>", unsafe_allow_html=True)
-
         render_map(m)
 
     except Exception as e:
