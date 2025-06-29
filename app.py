@@ -33,11 +33,6 @@ tobe_grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
 
 # KPI 표시
 asis_cols = st.columns(4)
-asis_cols[0].metric("ASIS 소요시간", "--")
-asis_cols[1].metric("ASIS 최단거리", "--")
-asis_cols[2].metric("ASIS 물류비", "--")
-asis_cols[3].metric("ASIS 탄소배출량", "--")
-
 tobe_cols = st.columns(4)
 st.markdown("---")
 
@@ -63,6 +58,8 @@ with col1:
         c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
         d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
 
+        total_duration_sec, total_distance_km = 0, 0
+
         for idx, crow in c_pts.iterrows():
             color = palette[idx % len(palette)]
             c = crow.geometry
@@ -78,10 +75,21 @@ with col1:
             data = res.json()
             routes = data.get("routes") or []
 
-            line = LineString(routes[0]["geometry"]["coordinates"]) if routes else LineString([(c.x, c.y), (d.x, d.y)])
-            style = {"color": color, "weight": 5 if routes else 3, "dashArray": None if routes else "5,5"}
+            if routes:
+                total_duration_sec += routes[0]["duration"]
+                total_distance_km += routes[0]["distance"] / 1000
+                line = LineString(routes[0]["geometry"]["coordinates"])
+                style = {"color": color, "weight": 5}
+            else:
+                line = LineString([(c.x, c.y), (d.x, d.y)])
+                style = {"color": color, "weight": 3, "dashArray": "5,5"}
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
+
+        asis_cols[0].metric("ASIS 소요시간", f"{int(total_duration_sec // 60)} 분")
+        asis_cols[1].metric("ASIS 최단거리", f"{round(total_distance_km, 2)} km")
+        asis_cols[2].metric("ASIS 물류비", f"{int(total_distance_km*5000):,} 원")
+        asis_cols[3].metric("ASIS 탄소배출량", f"{round(total_distance_km*0.65,2)} kg CO2")
 
         fg.add_to(m)
         render_map(m)
