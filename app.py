@@ -68,7 +68,7 @@ col1, col2 = st.columns(2, gap="large")
 with col1:
     st.markdown("#### 현재")
     try:
-        m = Map(location=[current_grp.geometry.y.mean(), current_grp.geometry.x.mean()], zoom_start=12, tiles=COMMON_TILE)
+        m = Map(location=[current_grp.geometry.y.mean(), current_grp.geometry.x.mean()], zoom_start=11, tiles=COMMON_TILE)  # 줌 한 단계 낮춤
         fg = FeatureGroup(name="현재")
 
         c_pts = current_grp[current_grp["location_t"] == "C"].reset_index()
@@ -104,7 +104,7 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # 현재 KPI 블록
+        # 현재 KPI
         current_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div>
@@ -143,7 +143,7 @@ with col1:
 with col2:
     st.markdown("#### 다타소(DaTaSo) 도입 후")
     try:
-        m = Map(location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()], zoom_start=12, tiles=COMMON_TILE)
+        m = Map(location=[dataso_grp.geometry.y.mean(), dataso_grp.geometry.x.mean()], zoom_start=11, tiles=COMMON_TILE)  # 줌 한 단계 낮춤
         fg = FeatureGroup(name="다타소")
 
         c_pts = dataso_grp[dataso_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
