@@ -10,18 +10,21 @@ from streamlit.components.v1 import html
 # ───────────── 와이드 레이아웃 ─────────────
 st.set_page_config(layout="wide")
 
-# ───────────── 상단 DaTaSo 로고 + 제목 (중앙정렬) ─────────────
-st.markdown(
-    """
-    <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 10px;'>
-        <img src='./image.jpg' style='width: 120px; margin-right: 20px;'/>
-        <h2 style='color: #333; margin: 0; text-align: center;'>
+# ───────────── 상단 DaTaSo 로고 + 제목 (columns 안전 버전) ─────────────
+logo_col, title_col = st.columns([1, 8])
+
+with logo_col:
+    st.image("./image.jpg", width=120)  # ✅ 깨짐 방지, 로고 크기 키움
+
+with title_col:
+    st.markdown(
+        """
+        <h2 style='color: #333; text-align: center;'>
             지속가능한 축산물류를 위한 탄소저감형 가축운송 플랫폼
         </h2>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+        """,
+        unsafe_allow_html=True
+    )
 
 # ───────────── 상수 ─────────────
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
