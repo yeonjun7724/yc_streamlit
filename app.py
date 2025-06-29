@@ -11,12 +11,19 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 
 # ─────────────────────────────
-# 상단 제목
-st.markdown(
-    "<h2 style='text-align: center;'>DaTaSo, 지속가능한 축산물류를 위한 탄소저감형 가축운송 플랫폼</h2>",
-    unsafe_allow_html=True
-)
+# 상단 로고 + 제목 배치
+logo_col, title_col = st.columns([1, 8])
 
+with logo_col:
+    st.image("./mnt/data/77e9a979-a78e-4eb7-a776-ff94b2be9834.png", width=80)  # 업로드된 이미지 경로에 맞춰주세요!
+
+with title_col:
+    st.markdown(
+        "<h2 style='padding-top: 10px;'>DaTaSo, 지속가능한 축산물류를 위한 탄소저감형 가축운송 플랫폼</h2>",
+        unsafe_allow_html=True
+    )
+
+# ─────────────────────────────
 # 상수
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH = "cb_tobe_sample.shp"
@@ -93,7 +100,6 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # AS-IS KPI 출력
         asis_cols[0].markdown(f"<h3 style='text-align: center;'>{int(asis_total_duration_sec // 60)} <span style='font-size:16px;'>분</span></h3><p style='text-align:center;'>ASIS 소요시간</p>", unsafe_allow_html=True)
         asis_cols[1].markdown(f"<h3 style='text-align: center;'>{round(asis_total_distance_km, 2)} <span style='font-size:16px;'>km</span></h3><p style='text-align:center;'>ASIS 최단거리</p>", unsafe_allow_html=True)
         asis_cols[2].markdown(f"<h3 style='text-align: center;'>{int(asis_total_distance_km*5000):,} <span style='font-size:16px;'>원</span></h3><p style='text-align:center;'>ASIS 물류비</p>", unsafe_allow_html=True)
@@ -142,23 +148,48 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # KPI
-        tobe_cols[0].markdown(f"<h3 style='text-align: center;'>{int(tobe_total_duration_sec // 60)} <span style='font-size:16px;'>분</span></h3>", unsafe_allow_html=True)
-        tobe_cols[1].markdown(f"<h3 style='text-align: center;'>{round(tobe_total_distance_km, 2)} <span style='font-size:16px;'>km</span></h3>", unsafe_allow_html=True)
-        tobe_cols[2].markdown(f"<h3 style='text-align: center;'>{int(tobe_total_distance_km*5000):,} <span style='font-size:16px;'>원</span></h3>", unsafe_allow_html=True)
-        tobe_cols[3].markdown(f"<h3 style='text-align: center;'>{round(tobe_total_distance_km*0.65,2)} <span style='font-size:16px;'>kg CO2</span></h3>", unsafe_allow_html=True)
-
-        # 차이값
+        # 차이값 계산
         diff_duration = int((asis_total_duration_sec - tobe_total_duration_sec) // 60)
         diff_distance = round(asis_total_distance_km - tobe_total_distance_km, 2)
         diff_cost     = int((asis_total_distance_km * 5000) - (tobe_total_distance_km * 5000))
         diff_emission = round((asis_total_distance_km * 0.65) - (tobe_total_distance_km * 0.65), 2)
 
-        diff_cols = tobe_cols  # 같은 열에 이어붙임
-        diff_cols[0].markdown(f"<p style='text-align:center; color:red; font-size:12px;'>- {diff_duration} 분</p>", unsafe_allow_html=True)
-        diff_cols[1].markdown(f"<p style='text-align:center; color:red; font-size:12px;'>- {diff_distance} km</p>", unsafe_allow_html=True)
-        diff_cols[2].markdown(f"<p style='text-align:center; color:red; font-size:12px;'>- {diff_cost:,} 원</p>", unsafe_allow_html=True)
-        diff_cols[3].markdown(f"<p style='text-align:center; color:red; font-size:12px;'>- {diff_emission} kg CO2</p>", unsafe_allow_html=True)
+        # TO-BE KPI + 비교값 + 문구
+        with tobe_cols[0]:
+            st.markdown(f"""
+                <div style='text-align: center;'>
+                    <div style='font-size: 32px; font-weight: bold;'>{int(tobe_total_duration_sec // 60)}<span style='font-size: 18px;'> 분</span></div>
+                    <div style='font-size: 14px; color: red; font-weight: bold;'>- {diff_duration} 분</div>
+                    <div style='font-size: 14px; color: #666;'>TOBE 소요시간</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+        with tobe_cols[1]:
+            st.markdown(f"""
+                <div style='text-align: center;'>
+                    <div style='font-size: 32px; font-weight: bold;'>{round(tobe_total_distance_km, 2)}<span style='font-size: 18px;'> km</span></div>
+                    <div style='font-size: 14px; color: red; font-weight: bold;'>- {diff_distance} km</div>
+                    <div style='font-size: 14px; color: #666;'>TOBE 최단거리</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+        with tobe_cols[2]:
+            st.markdown(f"""
+                <div style='text-align: center;'>
+                    <div style='font-size: 32px; font-weight: bold;'>{int(tobe_total_distance_km*5000):,}<span style='font-size: 18px;'> 원</span></div>
+                    <div style='font-size: 14px; color: red; font-weight: bold;'>- {diff_cost:,} 원</div>
+                    <div style='font-size: 14px; color: #666;'>TOBE 물류비</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+        with tobe_cols[3]:
+            st.markdown(f"""
+                <div style='text-align: center;'>
+                    <div style='font-size: 32px; font-weight: bold;'>{round(tobe_total_distance_km*0.65,2)}<span style='font-size: 18px;'> kg CO2</span></div>
+                    <div style='font-size: 14px; color: red; font-weight: bold;'>- {diff_emission} kg CO2</div>
+                    <div style='font-size: 14px; color: #666;'>TOBE 탄소배출량</div>
+                </div>
+            """, unsafe_allow_html=True)
 
         fg.add_to(m)
         render_map(m)
