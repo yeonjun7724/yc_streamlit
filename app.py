@@ -10,30 +10,34 @@ from streamlit.components.v1 import html
 # 와이드 레이아웃
 st.set_page_config(layout="wide")
 
+# ─────────────────────────────
+# 상단 제목
+st.markdown(
+    "<h2 style='text-align: center;'>DaTaSo, 지속가능한 축산물류를 위한 탄소저감형 가축운송 플랫폼</h2>",
+    unsafe_allow_html=True
+)
+
 # 상수
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH = "cb_tobe_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
 
-# 컬러 팔레트
-palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]
+palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
 
-# 데이터 로드 (WGS84)
+# 데이터 로드
 gdf_asis = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_tobe = gpd.read_file(TOBE_PATH).to_crs(4326)
 
-# 경로 선택
 common_ids = sorted(set(gdf_asis["sorting_id"]) & set(gdf_tobe["sorting_id"]))
 selected_id = st.selectbox("경로 선택 (sorting_id)", common_ids)
 
-# 그룹별 데이터
 asis_grp = gdf_asis[gdf_asis["sorting_id"] == selected_id]
 tobe_grp = gdf_tobe[gdf_tobe["sorting_id"] == selected_id]
 
-# KPI 표시
 asis_cols = st.columns(4)
 tobe_cols = st.columns(4)
+
 st.markdown("---")
 
 def render_map(m, height=600):
@@ -48,7 +52,8 @@ params = {
 
 col1, col2 = st.columns(2, gap="large")
 
-# ── AS-IS 경로
+# ─────────────────────────────
+# AS-IS 경로
 with col1:
     st.markdown("#### 현재")
     try:
@@ -88,10 +93,11 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        asis_cols[0].metric("ASIS 소요시간", f"{int(asis_total_duration_sec // 60)} 분")
-        asis_cols[1].metric("ASIS 최단거리", f"{round(asis_total_distance_km, 2)} km")
-        asis_cols[2].metric("ASIS 물류비", f"{int(asis_total_distance_km*5000):,} 원")
-        asis_cols[3].metric("ASIS 탄소배출량", f"{round(asis_total_distance_km*0.65,2)} kg CO2")
+        # AS-IS KPI 출력
+        asis_cols[0].markdown(f"<h3 style='text-align: center;'>{int(asis_total_duration_sec // 60)} <span style='font-size:16px;'>분</span></h3><p style='text-align:center;'>ASIS 소요시간</p>", unsafe_allow_html=True)
+        asis_cols[1].markdown(f"<h3 style='text-align: center;'>{round(asis_total_distance_km, 2)} <span style='font-size:16px;'>km</span></h3><p style='text-align:center;'>ASIS 최단거리</p>", unsafe_allow_html=True)
+        asis_cols[2].markdown(f"<h3 style='text-align: center;'>{int(asis_total_distance_km*5000):,} <span style='font-size:16px;'>원</span></h3><p style='text-align:center;'>ASIS 물류비</p>", unsafe_allow_html=True)
+        asis_cols[3].markdown(f"<h3 style='text-align: center;'>{round(asis_total_distance_km*0.65,2)} <span style='font-size:16px;'>kg CO2</span></h3><p style='text-align:center;'>ASIS 탄소배출량</p>", unsafe_allow_html=True)
 
         fg.add_to(m)
         render_map(m)
@@ -99,7 +105,8 @@ with col1:
     except Exception as e:
         st.error(f"[ASIS 에러] {e}")
 
-# ── TO-BE 경로
+# ─────────────────────────────
+# TO-BE 경로
 with col2:
     st.markdown("#### 공동운송 도입 후")
     try:
@@ -135,35 +142,23 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        tobe_cols[0].metric("TOBE 소요시간", f"{int(tobe_total_duration_sec // 60)} 분")
-        tobe_cols[1].metric("TOBE 최단거리", f"{round(tobe_total_distance_km, 2)} km")
-        tobe_cols[2].metric("TOBE 물류비", f"{int(tobe_total_distance_km*5000):,} 원")
-        tobe_cols[3].metric("TOBE 탄소배출량", f"{round(tobe_total_distance_km*0.65,2)} kg CO2")
+        # KPI
+        tobe_cols[0].markdown(f"<h3 style='text-align: center;'>{int(tobe_total_duration_sec // 60)} <span style='font-size:16px;'>분</span></h3>", unsafe_allow_html=True)
+        tobe_cols[1].markdown(f"<h3 style='text-align: center;'>{round(tobe_total_distance_km, 2)} <span style='font-size:16px;'>km</span></h3>", unsafe_allow_html=True)
+        tobe_cols[2].markdown(f"<h3 style='text-align: center;'>{int(tobe_total_distance_km*5000):,} <span style='font-size:16px;'>원</span></h3>", unsafe_allow_html=True)
+        tobe_cols[3].markdown(f"<h3 style='text-align: center;'>{round(tobe_total_distance_km*0.65,2)} <span style='font-size:16px;'>kg CO2</span></h3>", unsafe_allow_html=True)
 
-        # 🔴 KPI 밑에 '-' 표시한 차이값 (같은 열에 붙임)
+        # 차이값
         diff_duration = int((asis_total_duration_sec - tobe_total_duration_sec) // 60)
         diff_distance = round(asis_total_distance_km - tobe_total_distance_km, 2)
         diff_cost     = int((asis_total_distance_km * 5000) - (tobe_total_distance_km * 5000))
         diff_emission = round((asis_total_distance_km * 0.65) - (tobe_total_distance_km * 0.65), 2)
 
-        diff_cols = tobe_cols  # 같은 열에 바로 붙여야 딱 맞음
-
-        diff_cols[0].markdown(
-            f"<span style='color:red; font-size:12px;'>- {diff_duration} 분</span>",
-            unsafe_allow_html=True
-        )
-        diff_cols[1].markdown(
-            f"<span style='color:red; font-size:12px;'>- {diff_distance} km</span>",
-            unsafe_allow_html=True
-        )
-        diff_cols[2].markdown(
-            f"<span style='color:red; font-size:12px;'>- {diff_cost:,} 원</span>",
-            unsafe_allow_html=True
-        )
-        diff_cols[3].markdown(
-            f"<span style='color:red; font-size:12px;'>- {diff_emission} kg CO2</span>",
-            unsafe_allow_html=True
-        )
+        diff_cols = tobe_cols  # 같은 열에 이어붙임
+        diff_cols[0].markdown(f"<p style='text-align:center; color:red; font-size:12px;'>- {diff_duration} 분</p>", unsafe_allow_html=True)
+        diff_cols[1].markdown(f"<p style='text-align:center; color:red; font-size:12px;'>- {diff_distance} km</p>", unsafe_allow_html=True)
+        diff_cols[2].markdown(f"<p style='text-align:center; color:red; font-size:12px;'>- {diff_cost:,} 원</p>", unsafe_allow_html=True)
+        diff_cols[3].markdown(f"<p style='text-align:center; color:red; font-size:12px;'>- {diff_emission} kg CO2</p>", unsafe_allow_html=True)
 
         fg.add_to(m)
         render_map(m)
