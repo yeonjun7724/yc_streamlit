@@ -105,7 +105,7 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ✅ 현재 KPI 출력 (다타소와 동일한 스타일)
+        # ✅ 현재 KPI 출력 (다타소와 동일 스타일)
         current_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div>
@@ -134,7 +134,7 @@ with col1:
             </div>
         """, unsafe_allow_html=True)
 
-        # ✅ 범례 (우상단 깊게)
+        # ✅ 현재 지도 범례 (범례 타이틀 제거)
         legend_items = ""
         for idx in range(len(c_pts)):
             legend_items += f"""
@@ -154,7 +154,6 @@ with col1:
             padding: 10px 15px; 
             z-index:9999; 
             font-size: 13px;">
-            <b>범례</b><br>
             {legend_items}
             <div style="display:flex; align-items:center; margin-top:5px;">
                 <i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장
@@ -262,7 +261,6 @@ with col2:
             padding: 10px 15px; 
             z-index:9999; 
             font-size: 13px;">
-            <b>범례</b><br>
             {legend_items}
             <div style="display:flex; align-items:center; margin-top:5px;">
                 <i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장
