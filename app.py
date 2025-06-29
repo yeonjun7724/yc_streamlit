@@ -58,7 +58,7 @@ with col1:
         c_pts = asis_grp[asis_grp["location_t"] == "C"].reset_index()
         d_pts = asis_grp[asis_grp["location_t"] == "D"].reset_index()
 
-        total_duration_sec, total_distance_km = 0, 0
+        asis_total_duration_sec, asis_total_distance_km = 0, 0
 
         for idx, crow in c_pts.iterrows():
             color = palette[idx % len(palette)]
@@ -76,8 +76,8 @@ with col1:
             routes = data.get("routes") or []
 
             if routes:
-                total_duration_sec += routes[0]["duration"]
-                total_distance_km += routes[0]["distance"] / 1000
+                asis_total_duration_sec += routes[0]["duration"]
+                asis_total_distance_km += routes[0]["distance"] / 1000
                 line = LineString(routes[0]["geometry"]["coordinates"])
                 style = {"color": color, "weight": 5}
             else:
@@ -86,10 +86,10 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        asis_cols[0].metric("ASIS 소요시간", f"{int(total_duration_sec // 60)} 분")
-        asis_cols[1].metric("ASIS 최단거리", f"{round(total_distance_km, 2)} km")
-        asis_cols[2].metric("ASIS 물류비", f"{int(total_distance_km*5000):,} 원")
-        asis_cols[3].metric("ASIS 탄소배출량", f"{round(total_distance_km*0.65,2)} kg CO2")
+        asis_cols[0].metric("ASIS 소요시간", f"{int(asis_total_duration_sec // 60)} 분")
+        asis_cols[1].metric("ASIS 최단거리", f"{round(asis_total_distance_km, 2)} km")
+        asis_cols[2].metric("ASIS 물류비", f"{int(asis_total_distance_km*5000):,} 원")
+        asis_cols[3].metric("ASIS 탄소배출량", f"{round(asis_total_distance_km*0.65,2)} kg CO2")
 
         fg.add_to(m)
         render_map(m)
@@ -107,7 +107,7 @@ with col2:
         c_pts = tobe_grp[tobe_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
         d_pt = tobe_grp[tobe_grp["location_t"] == "D"].geometry.iloc[0]
 
-        total_duration_sec, total_distance_km = 0, 0
+        tobe_total_duration_sec, tobe_total_distance_km = 0, 0
 
         for i, row in c_pts.iterrows():
             folium.map.Marker([row.geometry.y, row.geometry.x], icon=DivIcon(icon_size=(30,30), icon_anchor=(15,15),
@@ -124,17 +124,17 @@ with col2:
             routes = res.get("routes") or []
 
             if routes:
-                total_duration_sec += routes[0]["duration"]
-                total_distance_km += routes[0]["distance"] / 1000
+                tobe_total_duration_sec += routes[0]["duration"]
+                tobe_total_distance_km += routes[0]["distance"] / 1000
                 coords = routes[0]["geometry"]["coordinates"]
                 line = LineString(coords)
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        tobe_cols[0].metric("TOBE 소요시간", f"{int(total_duration_sec // 60)} 분")
-        tobe_cols[1].metric("TOBE 최단거리", f"{round(total_distance_km, 2)} km")
-        tobe_cols[2].metric("TOBE 물류비", f"{int(total_distance_km*5000):,} 원")
-        tobe_cols[3].metric("TOBE 탄소배출량", f"{round(total_distance_km*0.65,2)} kg CO2")
+        tobe_cols[0].metric("TOBE 소요시간", f"{int(tobe_total_duration_sec // 60)} 분")
+        tobe_cols[1].metric("TOBE 최단거리", f"{round(tobe_total_distance_km, 2)} km")
+        tobe_cols[2].metric("TOBE 물류비", f"{int(tobe_total_distance_km*5000):,} 원")
+        tobe_cols[3].metric("TOBE 탄소배출량", f"{round(tobe_total_distance_km*0.65,2)} kg CO2")
 
         fg.add_to(m)
         render_map(m)
