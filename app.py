@@ -15,7 +15,7 @@ st.set_page_config(layout="wide")
 logo_col, title_col = st.columns([1, 8])
 
 with logo_col:
-    st.image("/image.jpg", width=80)  # 업로드된 이미지 경로에 맞춰주세요!
+    st.image("./image.jpg", width=80)  # 업로드된 이미지 경로에 맞춰주세요!
 
 with title_col:
     st.markdown(
