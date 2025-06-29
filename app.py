@@ -1,6 +1,7 @@
 import streamlit as st
 import geopandas as gpd
 import requests
+import base64
 from shapely.geometry import LineString
 import folium
 from folium import Map, FeatureGroup, GeoJson
@@ -10,21 +11,24 @@ from streamlit.components.v1 import html
 # ───────────── 와이드 레이아웃 ─────────────
 st.set_page_config(layout="wide")
 
-# ───────────── 상단 DaTaSo 로고 + 제목 (columns 안전 버전) ─────────────
-logo_col, title_col = st.columns([1, 8])
+# ───────────── Base64 이미지 인코딩 ─────────────
+file_path = "./image.jpg"
+with open(file_path, "rb") as f:
+    img_bytes = f.read()
+encoded = base64.b64encode(img_bytes).decode()
 
-with logo_col:
-    st.image("./image.jpg", width=120)  # ✅ 깨짐 방지, 로고 크기 키움
-
-with title_col:
-    st.markdown(
-        """
-        <h2 style='color: #333; text-align: center;'>
+# ───────────── 상단 로고 + 제목 (가운데 정렬, 붙임) ─────────────
+st.markdown(
+    f"""
+    <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
+        <img src="data:image/png;base64,{encoded}" style='width: 120px; margin-right: 15px;'/>
+        <h2 style='margin: 0; color: #333; text-align: center;'>
             지속가능한 축산물류를 위한 탄소저감형 가축운송 플랫폼
         </h2>
-        """,
-        unsafe_allow_html=True
-    )
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # ───────────── 상수 ─────────────
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
