@@ -243,43 +243,82 @@ with col2:
         st.error(f"[다타소 에러] {e}")
 
 # ───────────── 정책 그래프 (한글 깨짐 포함) ─────────────
+
+# ───────────── 가로-세로 정렬, 간격 조정 ─────────────
+# ───────────── 한글 깨짐 방지 ─────────────
+# ✅ OS별 안전한 기본 폰트 설정
+try:
+    matplotlib.rcParams['font.family'] = 'NanumGothic'
+except:
+    st.warning("⚠️ 일부 환경에서는 그래프 한글이 깨질 수 있습니다.\n"
+               "👉 해결: NanumGothic 폰트 설치 필요 (또는 matplotlib.rcParams 수동 설정)")
+
+matplotlib.rcParams['axes.unicode_minus'] = False
+sns.set_theme(style="whitegrid")
+
+# ───────────── 가로-세로 정렬, 간격 조정 ─────────────
 st.markdown("---")
 st.markdown("### 📊 정책별 샘플 그래프")
 
-col1, col2, col3 = st.columns(3)
+# 전체 그리드를 2행 3열로 배치
+row1_col1, row1_col2, row1_col3 = st.columns([1, 1, 1], gap="large")
+row2_col1, row2_col2, row2_col3 = st.columns([1, 1, 1], gap="large")
+
 months = np.arange(1, 13)
 
-with col1:
+# 1️⃣ 계절성 분석 (라인플롯)
+with row1_col1:
     st.markdown("### ✅ 계절성 분석")
-    fig1, ax1 = plt.subplots()
-    sns.lineplot(x=months, y=50 + 20 * np.sin(np.linspace(0, 2*np.pi, 12)), marker='o', ax=ax1)
-    st.pyplot(fig1)
+    fig, ax = plt.subplots(figsize=(4, 3))
+    sns.lineplot(x=months, y=50 + 20 * np.sin(np.linspace(0, 2*np.pi, 12)),
+                 marker='o', linewidth=2.5, color="#1f77b4", ax=ax)
+    ax.set_xlabel("월")
+    ax.set_ylabel("수치")
+    st.pyplot(fig, use_container_width=True)
 
-    st.markdown("### ✅ 농촌 상생")
-    fig2, ax2 = plt.subplots()
-    sns.barplot(x=['농가 A', '농가 B', '농가 C'], y=[100, 120, 80], palette="pastel", ax=ax2)
-    st.pyplot(fig2)
-
-with col2:
+# 2️⃣ 축산업 혁신 (히트맵)
+with row1_col2:
     st.markdown("### ✅ 축산업 혁신")
-    fig3, ax3 = plt.subplots()
-    sns.heatmap(np.random.rand(5, 5), annot=True, fmt=".2f", cmap="Blues", ax=ax3)
-    st.pyplot(fig3)
+    fig, ax = plt.subplots(figsize=(4, 3))
+    data = np.random.rand(5, 5)
+    sns.heatmap(data, annot=True, fmt=".2f", cmap="Blues", cbar=True, ax=ax)
+    st.pyplot(fig, use_container_width=True)
 
-    st.markdown("### ✅ 지역별 특성")
-    fig4, ax4 = plt.subplots()
-    ax4.boxplot([np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)], labels=['권역 A', '권역 B', '권역 C'])
-    st.pyplot(fig4)
-
-with col3:
+# 3️⃣ 탄소배출 계산 (파이차트)
+with row1_col3:
     st.markdown("### ✅ 탄소배출 계산")
-    fig5, ax5 = plt.subplots()
-    ax5.pie([30, 40, 30], labels=['운송', '사료', '기타'], autopct='%1.1f%%')
-    st.pyplot(fig5)
+    fig, ax = plt.subplots(figsize=(4, 3))
+    ax.pie([30, 40, 30], labels=['운송', '사료', '기타'], autopct='%1.1f%%',
+           colors=sns.color_palette("pastel"))
+    st.pyplot(fig, use_container_width=True)
 
+# 4️⃣ 농촌 상생 (바플롯)
+with row2_col1:
+    st.markdown("### ✅ 농촌 상생")
+    fig, ax = plt.subplots(figsize=(4, 3))
+    sns.barplot(x=['농가 A', '농가 B', '농가 C'],
+                y=[100, 120, 80], palette="Set2", ax=ax)
+    ax.set_ylabel("지원 규모")
+    st.pyplot(fig, use_container_width=True)
+
+# 5️⃣ 지역별 특성 (박스플롯)
+with row2_col2:
+    st.markdown("### ✅ 지역별 특성")
+    fig, ax = plt.subplots(figsize=(4, 3))
+    ax.boxplot([np.random.normal(100, 15, 50),
+                np.random.normal(120, 20, 50),
+                np.random.normal(90, 10, 50)],
+               labels=['권역 A', '권역 B', '권역 C'])
+    ax.set_ylabel("값")
+    st.pyplot(fig, use_container_width=True)
+
+# 6️⃣ 시장 동향 (산점도)
+with row2_col3:
     st.markdown("### ✅ 시장 동향")
-    fig6, ax6 = plt.subplots()
+    fig, ax = plt.subplots(figsize=(4, 3))
     price = np.random.uniform(1000, 5000, 50)
     vol = 50 + 0.02 * price + np.random.normal(0, 5, 50)
-    ax6.scatter(price, vol)
-    st.pyplot(fig6)
+    ax.scatter(price, vol, color="#2ca02c", alpha=0.7)
+    ax.set_xlabel("가격")
+    ax.set_ylabel("거래량")
+    st.pyplot(fig, use_container_width=True)
