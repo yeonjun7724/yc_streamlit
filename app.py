@@ -176,46 +176,52 @@ months = np.arange(1, 13)
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("✅ 계절성 분석")
+    st.markdown("### ✅ 계절성 분석")
     fig1, ax1 = plt.subplots()
-    sns.lineplot(x=months, y=50 + 20 * np.sin(np.linspace(0, 2*np.pi, 12)), ax=ax1)
-    ax1.set_title("계절성 분석 - 월별 운송량")
+    sns.lineplot(x=months, y=50 + 20 * np.sin(np.linspace(0, 2*np.pi, 12)) + np.random.normal(0, 3, 12), marker='o', ax=ax1)
+    ax1.set_title("월별 운송량 패턴")
     st.pyplot(fig1)
 
-    st.markdown("✅ 농촌 상생")
+    st.markdown("### ✅ 농촌 상생")
     fig2, ax2 = plt.subplots()
     sns.barplot(x=['농가 A', '농가 B', '농가 C'], y=[100, 120, 80], palette="pastel", ax=ax2)
-    ax2.set_title("농촌 상생 - 농가별 소득")
+    ax2.set_title("농가별 소득 비교")
     st.pyplot(fig2)
 
+# ✅ 2열
 with col2:
-    st.markdown("✅ 축산업 혁신")
-    data = np.random.rand(5,5)
+    st.markdown("### ✅ 축산업 혁신")
+    data = np.random.rand(5, 5)
     fig3, ax3 = plt.subplots()
     sns.heatmap(data, annot=True, fmt=".2f", cmap="Blues", ax=ax3)
-    ax3.set_title("축산업 혁신 - 스마트팜 상관")
+    ax3.set_title("스마트팜 센서 상관 Heatmap")
     st.pyplot(fig3)
 
-    st.markdown("✅ 지역별 특성")
+    st.markdown("### ✅ 지역별 특성")
+    region_data = [
+        np.random.normal(100, 15, 50),
+        np.random.normal(120, 20, 50),
+        np.random.normal(90, 10, 50)
+    ]
     fig4, ax4 = plt.subplots()
-    region_data = [np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)]
-    ax4.boxplot(region_data, labels=['권역A', '권역B', '권역C'])
-    ax4.set_title("지역별 특성 - 운송량 분포")
+    ax4.boxplot(region_data, labels=['권역 A', '권역 B', '권역 C'])
+    ax4.set_title("권역별 운송량 분포")
     st.pyplot(fig4)
 
+# ✅ 3열
 with col3:
-    st.markdown("✅ 탄소배출 계산")
+    st.markdown("### ✅ 탄소배출 계산")
     fig5, ax5 = plt.subplots()
-    ax5.pie([30, 40, 30], labels=['운송', '사료', '기타'], autopct='%1.1f%%')
-    ax5.set_title("탄소배출 계산 - 배출원 비중")
+    ax5.pie([30, 40, 30], labels=['운송', '사료', '기타'], autopct='%1.1f%%', startangle=140)
+    ax5.set_title("배출원 비중 파이차트")
     st.pyplot(fig5)
 
-    st.markdown("✅ 시장 동향")
+    st.markdown("### ✅ 시장 동향")
     fig6, ax6 = plt.subplots()
     price = np.random.uniform(1000, 5000, 50)
     vol = 50 + 0.02 * price + np.random.normal(0, 5, 50)
     ax6.scatter(price, vol)
-    ax6.set_title("시장 동향 - 가격 VS 운송량")
+    ax6.set_title("가격 vs 운송량 산점도")
     ax6.set_xlabel("가격")
     ax6.set_ylabel("운송량")
     st.pyplot(fig6)
