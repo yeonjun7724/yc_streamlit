@@ -7,8 +7,14 @@ import folium
 from folium import Map, FeatureGroup, GeoJson
 from folium.features import DivIcon
 from streamlit.components.v1 import html
+
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
+
+# ───────────── 한글 폰트 설정 (그래프용) ─────────────
+matplotlib.rc("font", family="Malgun Gothic")  # Windows용. Mac은 'AppleGothic', 리눅스는 'NanumGothic'
+matplotlib.rc("axes", unicode_minus=False)
 
 # ───────────── 와이드 레이아웃 ─────────────
 st.set_page_config(layout="wide")
@@ -33,7 +39,7 @@ st.markdown(
 )
 
 # ───────────── 상수 ─────────────
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
+MAPBOX_TOKEN = "YOUR_MAPBOX_TOKEN"
 ASIS_PATH = "cb_tobe_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
@@ -107,6 +113,12 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
+        # ✅ 현재 KPI
+        current_cols[0].metric("현재 소요시간", f"{int(current_total_duration_sec // 60)} 분")
+        current_cols[1].metric("현재 최단거리", f"{round(current_total_distance_km, 2)} km")
+        current_cols[2].metric("현재 물류비", f"{int(current_total_distance_km * 5000):,} 원")
+        current_cols[3].metric("현재 탄소배출량", f"{round(current_total_distance_km * 0.65, 2)} kg CO2")
+
         fg.add_to(m)
         render_map(m)
 
@@ -124,13 +136,34 @@ with col2:
         c_pts = dataso_grp[dataso_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
         d_pt = dataso_grp[dataso_grp["location_t"] == "D"].geometry.iloc[0]
 
-        for i, row in c_pts.iterrows():
-            folium.Marker([row.geometry.y, row.geometry.x], icon=DivIcon(
-                icon_size=(30,30), icon_anchor=(15,15),
-                html=f'<div style="font-size:14px; color:#fff; background:{palette[i % len(palette)]}; border-radius:50%; width:30px; height:30px; text-align:center; line-height:30px;">{i+1}</div>'
-            )).add_to(fg)
+        dataso_total_duration_sec, dataso_total_distance_km = 0, 0
 
-        folium.Marker([d_pt.y, d_pt.x], icon=folium.Icon(icon="flag-checkered", prefix="fa", color="red")).add_to(fg)
+        for i in range(len(c_pts)):
+            start = c_pts.geometry.iloc[i]
+            end = c_pts.geometry.iloc[i+1] if i < len(c_pts)-1 else d_pt
+
+            url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{start.x},{start.y};{end.x},{end.y}"
+            res = requests.get(url, params=params).json()
+            routes = res.get("routes") or []
+
+            if routes:
+                dataso_total_duration_sec += routes[0]["duration"]
+                dataso_total_distance_km += routes[0]["distance"] / 1000
+                coords = routes[0]["geometry"]["coordinates"]
+                line = LineString(coords)
+                style = {"color": palette[i % len(palette)], "weight": 5}
+                GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
+
+        # ✅ 다타소 KPI (차이도 표시)
+        diff_duration = int((current_total_duration_sec - dataso_total_duration_sec) // 60)
+        diff_distance = round(current_total_distance_km - dataso_total_distance_km, 2)
+        diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
+        diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
+
+        dataso_cols[0].metric("다타소 소요시간", f"{int(dataso_total_duration_sec // 60)} 분", f"-{diff_duration} 분")
+        dataso_cols[1].metric("다타소 최단거리", f"{round(dataso_total_distance_km, 2)} km", f"-{diff_distance} km")
+        dataso_cols[2].metric("다타소 물류비", f"{int(dataso_total_distance_km * 5000):,} 원", f"-{diff_cost:,} 원")
+        dataso_cols[3].metric("다타소 탄소배출량", f"{round(dataso_total_distance_km * 0.65, 2)} kg CO2", f"-{diff_emission} kg CO2")
 
         fg.add_to(m)
         render_map(m)
@@ -138,7 +171,7 @@ with col2:
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
 
-# ───────────── 정책·활용방안 + 샘플 그래프 ─────────────
+# ───────────── 정책·활용방안 ─────────────
 st.markdown("---")
 st.markdown("#### 📌 정책·활용방안")
 st.markdown("""
@@ -151,15 +184,15 @@ st.markdown("""
 ✅ 시장 동향 반영: 가격 변동과 운송량 상관관계 분석
 """)
 
-# ───────────── 샘플 그래프 영역 ─────────────
+# ───────────── 샘플 그래프 ─────────────
 st.markdown("#### 📊 분석 샘플 그래프 (예시)")
 
-# 1) 계절성 분석: 월별 운송량
+# 1) 계절성 분석
 months = np.arange(1, 13)
 volumes = np.random.randint(50, 150, size=12)
-fig1, ax1 = plt.subplots()
-ax1.plot(months, volumes, marker='o', linestyle='-', color='#1f77b4')
-ax1.set_title("월별 운송량 추이 (계절성 분석)")
+fig1, ax1 = plt.subplots(figsize=(5, 3))
+ax1.plot(months, volumes, marker='o', color='#1f77b4')
+ax1.set_title("월별 운송량 추이")
 ax1.set_xlabel("월")
 ax1.set_ylabel("운송량 (톤)")
 ax1.grid(True)
@@ -167,9 +200,9 @@ ax1.grid(True)
 # 2) 가격 변동 vs 운송량
 prices = np.random.uniform(1000, 5000, 30)
 volumes = np.random.uniform(40, 160, 30)
-fig2, ax2 = plt.subplots()
+fig2, ax2 = plt.subplots(figsize=(5, 3))
 ax2.scatter(prices, volumes, color='#ff7f0e', alpha=0.7)
-ax2.set_title("가격 변동 vs 운송량 (시장 동향)")
+ax2.set_title("가격 변동 vs 운송량")
 ax2.set_xlabel("가격 (원/kg)")
 ax2.set_ylabel("운송량 (톤)")
 ax2.grid(True)
@@ -177,18 +210,18 @@ ax2.grid(True)
 # 3) 권역별 운송 수요 변동성
 regions = ['권역 A', '권역 B', '권역 C']
 data = [np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)]
-fig3, ax3 = plt.subplots()
+fig3, ax3 = plt.subplots(figsize=(5, 3))
 ax3.boxplot(data, labels=regions)
-ax3.set_title("권역별 운송 수요 변동성 (지역별 특성)")
+ax3.set_title("권역별 운송 수요 변동성")
 ax3.set_ylabel("운송량 (톤)")
 ax3.grid(True)
 
 # 4) 농촌 상생: 농가별 소득 증대
 farmers = ['농가 A', '농가 B', '농가 C', '농가 D']
 income = np.random.randint(5, 15, size=4)
-fig4, ax4 = plt.subplots()
+fig4, ax4 = plt.subplots(figsize=(5, 3))
 ax4.bar(farmers, income, color='#2ca02c')
-ax4.set_title("농가별 예상 소득 증대 (농촌 상생)")
+ax4.set_title("농가별 예상 소득 증대")
 ax4.set_ylabel("소득 증대율 (%)")
 ax4.grid(axis='y')
 
