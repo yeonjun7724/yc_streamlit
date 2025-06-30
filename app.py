@@ -281,6 +281,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
 
+# ───────────── 전역 설정 ─────────────
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['font.size'] = 6
@@ -337,32 +338,33 @@ df_market = pd.DataFrame({"Price": prices, "Volume": volumes})
 st.markdown("---")
 st.markdown("#### 농가별 세부사항 분석")
 
+# ───────────── 첫 번째 줄 ─────────────
 row1 = st.columns(3, gap="large")
 
 with row1[0]:
     st.markdown("##### 1) 농가별 특성: 농가별 운송 수요 변동성 예측")
-    fig2, ax2 = plt.subplots(figsize=(6, 3.5))  # 높이 더 늘림
+    fig1, ax1 = plt.subplots(figsize=(6, 3.5))
     sns.boxplot(data=df_farm, x="Farm", y="Revenue",
-                palette="Paired", ax=ax2)
+                palette="Paired", ax=ax1)
     sns.stripplot(data=df_farm, x="Farm", y="Revenue",
-                  color=".3", size=1.5, jitter=True, ax=ax2)
-    ax2.set_xlabel("", fontsize=6)
-    ax2.set_ylabel("Revenue ($)", fontsize=6)
-    ax2.tick_params(axis='x', rotation=30, labelsize=6)
-    ax2.tick_params(axis='y', labelsize=6)
-    st.pyplot(fig2)
-    
+                  color=".3", size=1.5, jitter=True, ax=ax1)
+    ax1.set_xlabel("", fontsize=6)
+    ax1.set_ylabel("Revenue ($)", fontsize=6)
+    ax1.tick_params(axis='x', rotation=30, labelsize=6)
+    ax1.tick_params(axis='y', labelsize=6)
+    st.pyplot(fig1)
+
 with row1[1]:
     st.markdown("##### 2) 지역별 특성: 권역별 운송 수요 변동성 예측")
-    fig4, ax4 = plt.subplots(figsize=(4, 2.5))
+    fig2, ax2 = plt.subplots(figsize=(4, 2.5))
     sns.boxplot(data=df_region, x="Region", y="Production",
-                palette="Paired", ax=ax4)
+                palette="Paired", ax=ax2)
     sns.stripplot(data=df_region, x="Region", y="Production",
-                  color=".3", size=1.5, jitter=True, ax=ax4)
-    ax4.set_xlabel("", fontsize=6)
-    ax4.set_ylabel("Production", fontsize=6)
-    ax4.tick_params(axis='both', labelsize=6)
-    st.pyplot(fig4)
+                  color=".3", size=1.5, jitter=True, ax=ax2)
+    ax2.set_xlabel("", fontsize=6)
+    ax2.set_ylabel("Production", fontsize=6)
+    ax2.tick_params(axis='both', labelsize=6)
+    st.pyplot(fig2)
 
 with row1[2]:
     st.markdown("##### 3) 시장 동향 반영: 가격 변동과 운송량 상관관계 분석")
@@ -372,45 +374,47 @@ with row1[2]:
     ax3.tick_params(axis='both', labelsize=6)
     st.pyplot(fig3)
 
+# ───────────── 두 번째 줄 ─────────────
 row2 = st.columns(3, gap="large")
 
 with row2[0]:
     st.markdown("##### 4) 계절성 분석: 월별, 분기별 운송 패턴 분석")
-    fig1, ax1 = plt.subplots(figsize=(4, 2.5))
+    fig4, ax4 = plt.subplots(figsize=(4, 2.5))
     sns.lineplot(data=df_season, x="Month", y="Shipment", ci="sd", marker='o',
-                 linewidth=0.8, markersize=2, ax=ax1,
+                 linewidth=0.8, markersize=2, ax=ax4,
                  palette=sns.color_palette("Paired"))
-    ax1.set_xlabel("Month", fontsize=6)
-    ax1.set_ylabel("Shipment", fontsize=6)
-    ax1.tick_params(axis='both', labelsize=6)
-    st.pyplot(fig1)
+    ax4.set_xlabel("Month", fontsize=6)
+    ax4.set_ylabel("Shipment", fontsize=6)
+    ax4.tick_params(axis='both', labelsize=6)
+    st.pyplot(fig4)
 
 with row2[1]:
-        st.markdown("##### 5) 농촌 상생: 농가 소득증대 및 지역경제 활성화")
-    fig6, ax6 = plt.subplots(figsize=(4, 2.5))
+    st.markdown("##### 5) 농촌 상생: 농가 소득증대 및 지역경제 활성화")
+    fig5, ax5 = plt.subplots(figsize=(4, 2.5))
     sns.scatterplot(data=df_market, x="Price", y="Volume",
-                    s=8, color=sns.color_palette("Paired")[0], ax=ax6)
+                    s=8, color=sns.color_palette("Paired")[0], ax=ax5)
     sns.regplot(data=df_market, x="Price", y="Volume",
-                scatter=False, color=sns.color_palette("Paired")[1], ax=ax6)
-    ax6.set_xlabel("Price ($)", fontsize=6)
-    ax6.set_ylabel("Volume", fontsize=6)
-    ax6.tick_params(axis='both', labelsize=6)
-    st.pyplot(fig6)
+                scatter=False, color=sns.color_palette("Paired")[1], ax=ax5)
+    ax5.set_xlabel("Price ($)", fontsize=6)
+    ax5.set_ylabel("Volume", fontsize=6)
+    ax5.tick_params(axis='both', labelsize=6)
+    st.pyplot(fig5)
 
 with row2[2]:
     st.markdown("##### 6) 탄소배출 계산: 정부 탄소중립 정책 기여도 측정")
-    fig5, ax5 = plt.subplots(figsize=(1.0, 1.0), dpi=500)  # ✅ DPI 높여 선명!
+    fig6, ax6 = plt.subplots(figsize=(1.0, 1.0), dpi=500)  # 극소형 + 선명
     colors = sns.color_palette("Paired")
-    wedges, texts, autotexts = ax5.pie(
+    wedges, texts, autotexts = ax6.pie(
         df_carbon["Ratio"],
         labels=df_carbon["Category"],
         colors=colors[:5],
         autopct='%1.1f%%',
-        textprops={'fontsize': 3, 'color': 'black'},  # 글씨는 검정으로
+        textprops={'fontsize': 3, 'color': 'black'},
         wedgeprops=dict(width=0.35)
     )
     for text in texts:
         text.set_fontsize(3)
         text.set_color('black')
-    ax5.set_title("")  # 제목 제거
-    st.pyplot(fig5)
+    ax6.set_title("")
+    st.pyplot(fig6)
+
