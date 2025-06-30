@@ -276,44 +276,129 @@ with col2:
         st.error(f"[다타소 에러] {e}")
 
 
-# ───────────── 정책 그래프 (한글 깨짐 포함) ─────────────
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import streamlit as st
+
+# ───────────── 글로벌 설정 ─────────────
+plt.rcParams['font.family'] = 'Arial'  # 영문용
+plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['font.size'] = 7  # 엄청 작게
+sns.set_style("whitegrid")
+
+# ───────────── 1) Seasonality Data ─────────────
+np.random.seed(42)
+months = np.arange(1, 13)
+season_values = []
+for m in months:
+    base = 50 + 10 * np.sin(2 * np.pi * m / 12)
+    for i in range(5):
+        season_values.append({"Month": m, "Shipment": base + np.random.normal(0, 2)})
+
+df_season = pd.DataFrame(season_values)
+
+# ───────────── 2) Farming Revenue ─────────────
+farms = ["Farm A", "Farm B", "Farm C"]
+revenue_values = []
+for farm in farms:
+    for i in range(10):
+        val = np.random.normal(100, 10)
+        if farm == "Farm B":
+            val += 20
+        if farm == "Farm C":
+            val -= 15
+        revenue_values.append({"Farm": farm, "Revenue": val})
+
+df_farm = pd.DataFrame(revenue_values)
+
+# ───────────── 3) Innovation Heatmap ─────────────
+df_heat = pd.DataFrame(np.round(np.random.rand(10, 10), 2),
+                       columns=[f"V{i+1}" for i in range(10)],
+                       index=[f"S{i+1}" for i in range(10)])
+
+# ───────────── 4) Regional Production ─────────────
+regions = ["Region A", "Region B", "Region C"]
+region_values = []
+for region in regions:
+    for i in range(30):
+        if region == "Region A":
+            val = np.random.normal(90, 5)
+        elif region == "Region B":
+            val = np.random.normal(110, 10)
+        else:
+            val = np.random.normal(80, 4)
+        region_values.append({"Region": region, "Production": val})
+
+df_region = pd.DataFrame(region_values)
+
+# ───────────── 5) Carbon Pie ─────────────
+df_carbon = pd.DataFrame({
+    "Category": ["Transport", "Feed", "Others"],
+    "Ratio": [0.35, 0.45, 0.20]
+})
+
+# ───────────── 6) Market Scatter ─────────────
+prices = np.random.uniform(1000, 5000, 100)
+volumes = 30 + 0.01 * prices + np.random.normal(0, 3, 100)
+df_market = pd.DataFrame({"Price": prices, "Volume": volumes})
+
+# ───────────── Streamlit Section ─────────────
 st.markdown("---")
-st.markdown("### 📊 정책별 샘플 그래프")
+st.markdown("### 📊 Policy Sample Graphs (English / Fine-grained)")
 
 col1, col2, col3 = st.columns(3)
-months = np.arange(1, 13)
 
 with col1:
-    st.markdown("### ✅ 계절성 분석")
-    fig1, ax1 = plt.subplots()
-    sns.lineplot(x=months, y=50 + 20 * np.sin(np.linspace(0, 2*np.pi, 12)), marker='o', ax=ax1)
+    st.markdown("#### ✅ Seasonality")
+    fig1, ax1 = plt.subplots(figsize=(4, 2.5))
+    sns.lineplot(data=df_season, x="Month", y="Shipment", marker='o', ax=ax1, ci=None)
+    ax1.set_title("Monthly Shipment", fontsize=8)
+    ax1.set_xlabel("Month", fontsize=7)
+    ax1.set_ylabel("Shipment Volume", fontsize=7)
+    ax1.tick_params(axis='both', labelsize=7)
     st.pyplot(fig1)
 
-    st.markdown("### ✅ 농촌 상생")
-    fig2, ax2 = plt.subplots()
-    sns.barplot(x=['농가 A', '농가 B', '농가 C'], y=[100, 120, 80], palette="pastel", ax=ax2)
+    st.markdown("#### ✅ Farming Revenue")
+    fig2, ax2 = plt.subplots(figsize=(4, 2.5))
+    sns.boxplot(data=df_farm, x="Farm", y="Revenue", palette="pastel", ax=ax2)
+    ax2.set_title("Revenue by Farm", fontsize=8)
+    ax2.set_xlabel("")
+    ax2.set_ylabel("Revenue ($)", fontsize=7)
+    ax2.tick_params(axis='both', labelsize=7)
     st.pyplot(fig2)
 
 with col2:
-    st.markdown("### ✅ 축산업 혁신")
-    fig3, ax3 = plt.subplots()
-    sns.heatmap(np.random.rand(5, 5), annot=True, fmt=".2f", cmap="Blues", ax=ax3)
+    st.markdown("#### ✅ Innovation Heatmap")
+    fig3, ax3 = plt.subplots(figsize=(4, 2.5))
+    sns.heatmap(df_heat, annot=True, fmt=".2f", cmap="Blues", cbar=False, ax=ax3)
+    ax3.set_title("Innovation Index", fontsize=8)
     st.pyplot(fig3)
 
-    st.markdown("### ✅ 지역별 특성")
-    fig4, ax4 = plt.subplots()
-    ax4.boxplot([np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)], labels=['권역 A', '권역 B', '권역 C'])
+    st.markdown("#### ✅ Regional Production")
+    fig4, ax4 = plt.subplots(figsize=(4, 2.5))
+    sns.boxplot(data=df_region, x="Region", y="Production", ax=ax4)
+    ax4.set_title("Production by Region", fontsize=8)
+    ax4.set_xlabel("")
+    ax4.set_ylabel("Production", fontsize=7)
+    ax4.tick_params(axis='both', labelsize=7)
     st.pyplot(fig4)
 
 with col3:
-    st.markdown("### ✅ 탄소배출 계산")
-    fig5, ax5 = plt.subplots()
-    ax5.pie([30, 40, 30], labels=['운송', '사료', '기타'], autopct='%1.1f%%')
+    st.markdown("#### ✅ Carbon Emission")
+    fig5, ax5 = plt.subplots(figsize=(4, 2.5))
+    ax5.pie(df_carbon["Ratio"], labels=df_carbon["Category"], autopct='%1.1f%%',
+            textprops={'fontsize': 7})
+    ax5.set_title("Carbon Breakdown", fontsize=8)
     st.pyplot(fig5)
 
-    st.markdown("### ✅ 시장 동향")
-    fig6, ax6 = plt.subplots()
-    price = np.random.uniform(1000, 5000, 50)
-    vol = 50 + 0.02 * price + np.random.normal(0, 5, 50)
-    ax6.scatter(price, vol)
+    st.markdown("#### ✅ Market Trend")
+    fig6, ax6 = plt.subplots(figsize=(4, 2.5))
+    sns.scatterplot(data=df_market, x="Price", y="Volume", ax=ax6)
+    ax6.set_title("Price vs. Volume", fontsize=8)
+    ax6.set_xlabel("Price ($)", fontsize=7)
+    ax6.set_ylabel("Volume", fontsize=7)
+    ax6.tick_params(axis='both', labelsize=7)
     st.pyplot(fig6)
+
