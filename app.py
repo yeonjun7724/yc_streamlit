@@ -39,7 +39,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ───────────── 상수 (Mapbox 토큰 포함) ─────────────
+# ───────────── 상수 ─────────────
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH = "cb_tobe_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
@@ -69,6 +69,23 @@ params = {
 }
 
 col1, col2 = st.columns(2, gap="large")
+
+# ───────────── 범례 HTML ─────────────
+legend_html = """
+ <div style="
+ position: fixed; 
+ top: 50px; right: 50px; width: 150px; height: auto; 
+ background-color: white; 
+ border:2px solid grey; z-index:9999; 
+ font-size:14px;
+ padding: 10px;">
+ <b>범례</b><br>
+ <i style="background: #1f77b4; width:10px; height:10px; display:inline-block;"></i> 농가 1<br>
+ <i style="background: #ff7f0e; width:10px; height:10px; display:inline-block;"></i> 농가 2<br>
+ <i style="background: #2ca02c; width:10px; height:10px; display:inline-block;"></i> 농가 3<br>
+ <i class="fa fa-flag-checkered" style="color:red"></i> 도축장
+ </div>
+"""
 
 # ───────────── 현재 경로 ─────────────
 with col1:
@@ -107,6 +124,9 @@ with col1:
                 style = {"color": color, "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
+        fg.add_to(m)
+        m.get_root().html.add_child(folium.Element(legend_html))
+
         current_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px;'>현재 소요시간</div>
@@ -132,7 +152,6 @@ with col1:
             </div>
         """, unsafe_allow_html=True)
 
-        fg.add_to(m)
         render_map(m)
     except Exception as e:
         st.error(f"[현재 에러] {e}")
@@ -174,6 +193,9 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
+        fg.add_to(m)
+        m.get_root().html.add_child(folium.Element(legend_html))
+
         diff_duration = int((current_total_duration_sec - dataso_total_duration_sec) // 60)
         diff_distance = round(current_total_distance_km - dataso_total_distance_km, 2)
         diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
@@ -208,12 +230,11 @@ with col2:
             </div>
         """, unsafe_allow_html=True)
 
-        fg.add_to(m)
         render_map(m)
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
 
-# ───────────── 정책 그래프 (한글 깨짐 포함) ─────────────
+# ───────────── 정책 그래프 (예시) ─────────────
 st.markdown("---")
 st.markdown("### 📊 정책별 샘플 그래프")
 
