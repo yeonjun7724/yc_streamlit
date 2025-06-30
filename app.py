@@ -300,12 +300,11 @@ for m in range(1, 13):
 df_season = pd.DataFrame(season_shipments)
 
 # ───────────── 2) Farming Revenue ─────────────
-farms = [f"Farm {chr(65+i)}" for i in range(10)]  # Farm A ~ Farm J
+farms = [f"Farm {chr(65+i)}" for i in range(10)]
 farm_revenues = []
 for farm in farms:
     for i in range(50):
-        val = np.random.normal(50000, 5000)
-        val += np.random.uniform(-5000, 5000)  # 농가별 랜덤한 차이
+        val = np.random.normal(50000, 5000) + np.random.uniform(-5000, 5000)
         farm_revenues.append({"Farm": farm, "Revenue": val})
 df_farm = pd.DataFrame(farm_revenues)
 
@@ -343,35 +342,38 @@ df_market = pd.DataFrame({"Price": prices, "Volume": volumes})
 
 # ───────────── Streamlit ─────────────
 st.markdown("---")
-st.markdown("### 📊 Fine-Grained Seaborn Graphs (Farm 10+, Colorful)")
+st.markdown("### 📊 Fine-Grained Seaborn Graphs (3 per row, gap large)")
 
-with st.container():
+# ───────────── 첫 번째 줄 ─────────────
+row1 = st.columns(3, gap="large")
+
+with row1[0]:
     st.markdown("#### ✅ Seasonality")
     fig1, ax1 = plt.subplots(figsize=(4, 2.5))
     sns.lineplot(data=df_season, x="Month", y="Shipment", ci="sd", marker='o',
                  linewidth=0.8, markersize=2, ax=ax1,
-                 palette=sns.color_palette("Set2"))
-    ax1.set_title("Monthly Shipment (Detailed)", fontsize=6)
+                 palette=sns.color_palette("Paired"))
+    ax1.set_title("Monthly Shipment", fontsize=6)
     ax1.set_xlabel("Month", fontsize=6)
     ax1.set_ylabel("Shipment", fontsize=6)
     ax1.tick_params(axis='both', labelsize=6)
     st.pyplot(fig1)
 
-with st.container():
-    st.markdown("#### ✅ Farming Revenue (10 Farms, Boxplot)")
-    fig2, ax2 = plt.subplots(figsize=(6, 2.5))  # Farm이 많아지면 가로 길이 넓혀줌
+with row1[1]:
+    st.markdown("#### ✅ Farming Revenue")
+    fig2, ax2 = plt.subplots(figsize=(6, 2.5))
     sns.boxplot(data=df_farm, x="Farm", y="Revenue",
                 palette="Paired", ax=ax2)
     sns.stripplot(data=df_farm, x="Farm", y="Revenue",
                   color=".3", size=1.5, jitter=True, ax=ax2)
-    ax2.set_title("Farm Revenue Distribution (10 Farms)", fontsize=6)
+    ax2.set_title("Revenue by Farm (10)", fontsize=6)
     ax2.set_xlabel("")
     ax2.set_ylabel("Revenue ($)", fontsize=6)
     ax2.tick_params(axis='x', rotation=30, labelsize=6)
     ax2.tick_params(axis='y', labelsize=6)
     st.pyplot(fig2)
 
-with st.container():
+with row1[2]:
     st.markdown("#### ✅ Innovation Heatmap")
     fig3, ax3 = plt.subplots(figsize=(4, 2.5))
     sns.heatmap(df_heat, annot=True, fmt=".1f", cmap="coolwarm",
@@ -379,11 +381,14 @@ with st.container():
     ax3.set_title("Innovation Matrix", fontsize=6)
     st.pyplot(fig3)
 
-with st.container():
+# ───────────── 두 번째 줄 ─────────────
+row2 = st.columns(3, gap="large")
+
+with row2[0]:
     st.markdown("#### ✅ Regional Production")
     fig4, ax4 = plt.subplots(figsize=(4, 2.5))
     sns.boxplot(data=df_region, x="Region", y="Production",
-                palette="Set2", ax=ax4)
+                palette="Paired", ax=ax4)
     sns.stripplot(data=df_region, x="Region", y="Production",
                   color=".3", size=1.5, jitter=True, ax=ax4)
     ax4.set_title("Production by Region", fontsize=6)
@@ -392,7 +397,7 @@ with st.container():
     ax4.tick_params(axis='both', labelsize=6)
     st.pyplot(fig4)
 
-with st.container():
+with row2[1]:
     st.markdown("#### ✅ Carbon Emission (Donut)")
     fig5, ax5 = plt.subplots(figsize=(3, 2))
     colors = sns.color_palette("Paired")
@@ -405,13 +410,13 @@ with st.container():
     ax5.set_title("Carbon Emission Breakdown", fontsize=6)
     st.pyplot(fig5)
 
-with st.container():
+with row2[2]:
     st.markdown("#### ✅ Market Trend")
     fig6, ax6 = plt.subplots(figsize=(4, 2.5))
     sns.scatterplot(data=df_market, x="Price", y="Volume",
-                    s=8, color=sns.color_palette("Set2")[0], ax=ax6)
+                    s=8, color=sns.color_palette("Paired")[0], ax=ax6)
     sns.regplot(data=df_market, x="Price", y="Volume",
-                scatter=False, color=sns.color_palette("Set2")[1], ax=ax6)
+                scatter=False, color=sns.color_palette("Paired")[1], ax=ax6)
     ax6.set_title("Price vs Volume", fontsize=6)
     ax6.set_xlabel("Price ($)", fontsize=6)
     ax6.set_ylabel("Volume", fontsize=6)
