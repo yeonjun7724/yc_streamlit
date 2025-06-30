@@ -282,91 +282,162 @@ import numpy as np
 import pandas as pd
 import matplotlib
 
-# ───────────── 한글 폰트 & 스타일 ─────────────
+# ───────────── 기본 설정 ─────────────
 plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
 sns.set_theme(style="whitegrid")
 
 st.markdown("---")
-st.markdown("## 📊 정책별 샘플 그래프 (가상 데이터)")
+st.markdown("## 📊 정책별 고해상도 분석 그래프")
 
+# ───────────── 가상 데이터 ─────────────
+np.random.seed(123)
+
+# 1) 농가별 생산량
+farmers = [f'농가 {chr(65+i)}' for i in range(8)]
+prod = np.random.randint(90, 160, size=8)
+
+# 2) 권역별 지표
+zones = [f'권역 {chr(65+i)}' for i in range(5)]
+zone_data = [np.random.normal(100+10*i, 8+2*i, 70) for i in range(5)]
+
+# 3) 월별 계절성
+months = np.arange(1, 13)
+seasonal = 60 + 18 * np.sin(np.linspace(0, 2*np.pi, 12)) + np.random.normal(0, 3, 12)
+growth = np.diff(seasonal, prepend=seasonal[0])
+
+# 4) 탄소배출 구성
+carbon_labels = ['운송', '사료', '에너지', '시설', '폐기물', '기타']
+carbon_sizes = [30, 25, 20, 10, 10, 5]
+
+# 5) 혁신지표
+corr_matrix = np.round(np.random.uniform(0.1, 0.98, size=(8,8)), 2)
+
+# 6) 시장 동향
+price = np.random.uniform(2000, 9000, 150)
+volume = 35 + 0.02*price + np.random.normal(0, 6, 150)
+
+# 7) 연간 성장률
+years = np.arange(2019, 2024)
+annual = np.random.uniform(5, 15, len(years))
+
+# 8) 지역별 구성비
+regions = ['도시형', '농촌형', '산간형', '복합형']
+region_sizes = [40, 35, 15, 10]
+
+# 9) 변수별 비교
+var_data = pd.DataFrame({
+    'Var1': np.random.normal(50, 5, 100),
+    'Var2': np.random.normal(60, 8, 100),
+    'Var3': np.random.normal(55, 6, 100),
+})
+
+# ───────────── Streamlit Grid ─────────────
 col1, col2, col3 = st.columns(3)
 
-# ───────────── 1) 농가별 생산량 (Barplot) ─────────────
+# ───────────── 1) 농가별 생산량 ─────────────
 with col1:
     st.markdown("### ✅ 농가별 생산량")
-    farmers = [f'농가 {c}' for c in ['A','B','C','D','E','F']]
-    np.random.seed(42)
-    prod = np.random.randint(80, 150, size=6)
     fig, ax = plt.subplots(figsize=(4,3))
     sns.barplot(x=farmers, y=prod, palette="pastel", ax=ax)
-    ax.set_ylabel("연간 생산량 (톤)", fontsize=10)
-    ax.set_title("농가별 연간 생산량 비교", fontsize=12)
+    ax.axhline(np.mean(prod), ls='--', color='red', label='평균선')
     for i, v in enumerate(prod):
         ax.text(i, v+2, f"{v}t", ha='center', fontsize=8)
+    ax.set_ylabel("생산량 (톤)")
+    ax.set_title("8개 농가 연간 생산량")
+    ax.legend()
     st.pyplot(fig)
 
-# ───────────── 2) 권역별 지표 분포 (Boxplot) ─────────────
+# ───────────── 2) 권역별 지표 ─────────────
 with col2:
-    st.markdown("### ✅ 권역별 지표 분포")
-    data = [np.random.normal(100+10*i, 10+2*i, 60) for i in range(4)]
+    st.markdown("### ✅ 권역별 지표")
     fig, ax = plt.subplots(figsize=(4,3))
-    labels = [f'권역 {c}' for c in ['A','B','C','D']]
-    ax.boxplot(data, labels=labels, patch_artist=True,
+    ax.boxplot(zone_data, labels=zones, patch_artist=True,
                boxprops=dict(facecolor='#90be6d'),
-               medianprops=dict(color='white', linewidth=2))
-    ax.set_title("권역별 농가 지표 분포", fontsize=12)
-    ax.set_ylabel("지표값", fontsize=10)
+               medianprops=dict(color='white'))
+    means = [np.mean(z) for z in zone_data]
+    for i, m in enumerate(means):
+        ax.text(i+1, m+2, f"{m:.1f}", ha='center', fontsize=7)
+    ax.set_ylabel("지표값")
+    ax.set_title("권역별 농가 지표 분포")
     st.pyplot(fig)
 
-# ───────────── 3) 월별 계절성 추이 (Lineplot) ─────────────
+# ───────────── 3) 월별 계절성 ─────────────
 with col3:
-    st.markdown("### ✅ 월별 계절성 추이")
-    months = np.arange(1,13)
-    seasonal = 50 + 15 * np.sin(np.linspace(0, 2*np.pi, 12)) + np.random.normal(0,2,12)
+    st.markdown("### ✅ 월별 계절성")
     fig, ax = plt.subplots(figsize=(4,3))
-    sns.lineplot(x=months, y=seasonal, marker='o', linewidth=2, color="#0077b6", ax=ax)
-    ax.set_title("월별 생산량 계절성 추이", fontsize=12)
-    ax.set_xlabel("월", fontsize=10)
-    ax.set_ylabel("생산지수", fontsize=10)
-    ax.set_xticks(months)
-    for x, y in zip(months, seasonal):
-        ax.text(x, y+0.8, f"{y:.1f}", ha='center', fontsize=7)
+    sns.lineplot(x=months, y=seasonal, marker='o', ax=ax)
+    for x, y, g in zip(months, seasonal, growth):
+        ax.text(x, y+1, f"{y:.1f}", ha='center', fontsize=7)
+        if x > 1:
+            ax.annotate(f"{g:+.1f}", xy=(x,y), xytext=(x,y+4), fontsize=6)
+    ax.set_xlabel("월")
+    ax.set_ylabel("생산지수")
+    ax.set_title("월별 계절성 추이 및 증감")
     st.pyplot(fig)
 
-# ───────────── 4) 탄소배출 구성비 (Pie) ─────────────
+# ───────────── 4) 탄소배출 ─────────────
 with col1:
     st.markdown("### ✅ 탄소배출 구성비")
-    labels = ['운송', '사료', '에너지', '시설', '기타']
-    sizes = [35, 25, 20, 10, 10]
     fig, ax = plt.subplots(figsize=(4,3))
     wedges, texts, autotexts = ax.pie(
-        sizes, labels=labels, autopct='%1.1f%%', startangle=90,
-        colors=sns.color_palette("pastel"),
+        carbon_sizes, labels=carbon_labels, autopct='%1.1f%%',
+        colors=sns.color_palette("pastel"), startangle=90,
         wedgeprops=dict(width=0.5, edgecolor='w'))
-    ax.set_title("탄소배출 카테고리별 비중 (%)", fontsize=12)
+    ax.set_title("카테고리별 탄소배출 비율")
     st.pyplot(fig)
 
-# ───────────── 5) 축산업 혁신 지표 (Heatmap) ─────────────
+# ───────────── 5) 혁신지표 ─────────────
 with col2:
-    st.markdown("### ✅ 축산업 혁신 지표")
+    st.markdown("### ✅ 축산업 혁신지표")
     fig, ax = plt.subplots(figsize=(4,3))
-    corr_matrix = np.round(np.random.uniform(0.2, 0.95, size=(6,6)), 2)
     sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="YlGnBu",
-                linewidths=0.5, linecolor='gray',
+                linewidths=0.5, linecolor='grey',
                 cbar_kws={'label': '상관계수'}, ax=ax)
-    ax.set_title("혁신요소 간 상관관계", fontsize=12)
+    ax.set_title("8개 혁신요소 간 상관관계")
     st.pyplot(fig)
 
-# ───────────── 6) 시장 동향 (Scatter) ─────────────
+# ───────────── 6) 시장 동향 ─────────────
 with col3:
     st.markdown("### ✅ 시장 동향")
-    np.random.seed(123)
-    price = np.random.uniform(2000, 8000, 100)
-    vol = 40 + 0.015 * price + np.random.normal(0, 5, 100)
     fig, ax = plt.subplots(figsize=(4,3))
-    sns.scatterplot(x=price, y=vol, color="#023047", s=40, edgecolor='w', ax=ax)
-    ax.set_title("가격-거래량 상관관계", fontsize=12)
-    ax.set_xlabel("가격 (원/kg)", fontsize=10)
-    ax.set_ylabel("거래량 (톤)", fontsize=10)
+    sns.scatterplot(x=price, y=volume, color="#023047", s=30, edgecolor='w', ax=ax)
+    m, b = np.polyfit(price, volume, 1)
+    ax.plot(price, m*price + b, color='red', linestyle='--', label='추세선')
+    ax.legend()
+    ax.set_xlabel("가격 (원/kg)")
+    ax.set_ylabel("거래량 (톤)")
+    ax.set_title("가격-거래량 관계와 추세선")
     st.pyplot(fig)
+
+# ───────────── 7) 연간 성장률 ─────────────
+with col1:
+    st.markdown("### ✅ 연간 성장률")
+    fig, ax = plt.subplots(figsize=(4,3))
+    sns.barplot(x=years, y=annual, palette="muted", ax=ax)
+    for x, y in zip(years, annual):
+        ax.text(x-years[0], y+0.5, f"{y:.1f}%", ha='center', fontsize=7)
+    ax.set_title("연간 성장률 (YOY %)")
+    ax.set_ylabel("성장률 (%)")
+    st.pyplot(fig)
+
+# ───────────── 8) 지역별 구성비 ─────────────
+with col2:
+    st.markdown("### ✅ 지역별 구성비")
+    fig, ax = plt.subplots(figsize=(4,3))
+    wedges, texts, autotexts = ax.pie(
+        region_sizes, labels=regions, autopct='%1.1f%%',
+        colors=sns.color_palette("pastel"), startangle=90,
+        wedgeprops=dict(width=0.4, edgecolor='w'))
+    ax.set_title("지역별 농가 구성 비율")
+    st.pyplot(fig)
+
+# ───────────── 9) 변수별 비교 ─────────────
+with col3:
+    st.markdown("### ✅ 변수별 분포 비교")
+    fig, ax = plt.subplots(figsize=(4,3))
+    sns.violinplot(data=var_data, palette="Set2", ax=ax)
+    ax.set_title("변수별 지표 분포 (Violin)")
+    ax.set_ylabel("값")
+    st.pyplot(fig)
+
