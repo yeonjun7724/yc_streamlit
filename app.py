@@ -46,6 +46,33 @@ TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 
+# ───────────── 범례 ─────────────
+legend_html = """
+ <div style="
+ position: fixed; 
+ top: 20px; right: 20px; width: 90px; height: auto; 
+ background: rgba(255, 255, 255, 0.95);
+ border-radius: 5px; 
+ box-shadow: 0 2px 6px rgba(0,0,0,0.1); 
+ z-index: 9999; 
+ font-size: 12px; 
+ padding: 6px 8px; 
+ line-height: 1.4;">
+ <div style="display: flex; align-items: center; margin-bottom: 4px;">
+   <span style="background: #1f77b4; width: 10px; height: 10px; display: inline-block; margin-right: 4px; border-radius: 2px;"></span> 농가 1
+ </div>
+ <div style="display: flex; align-items: center; margin-bottom: 4px;">
+   <span style="background: #ff7f0e; width: 10px; height: 10px; display: inline-block; margin-right: 4px; border-radius: 2px;"></span> 농가 2
+ </div>
+ <div style="display: flex; align-items: center; margin-bottom: 4px;">
+   <span style="background: #2ca02c; width: 10px; height: 10px; display: inline-block; margin-right: 4px; border-radius: 2px;"></span> 농가 3
+ </div>
+ <div style="display: flex; align-items: center;">
+   <i class="fa fa-flag-checkered" style="color:red; margin-right: 4px;"></i> 도축장
+ </div>
+ </div>
+"""
+
 # ───────────── 데이터 ─────────────
 gdf_current = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_dataso = gpd.read_file(TOBE_PATH).to_crs(4326)
@@ -133,6 +160,7 @@ with col1:
         """, unsafe_allow_html=True)
 
         fg.add_to(m)
+        m.get_root().html.add_child(folium.Element(legend_html))
         render_map(m)
     except Exception as e:
         st.error(f"[현재 에러] {e}")
@@ -209,6 +237,7 @@ with col2:
         """, unsafe_allow_html=True)
 
         fg.add_to(m)
+        m.get_root().html.add_child(folium.Element(legend_html))
         render_map(m)
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
