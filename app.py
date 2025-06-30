@@ -13,8 +13,8 @@ import matplotlib
 import numpy as np
 
 # ───────────── 한글 깨짐 방지 ─────────────
-matplotlib.rc("font", family="Malgun Gothic")
-matplotlib.rc("axes", unicode_minus=False)
+matplotlib.rcParams['font.family'] = 'Malgun Gothic'  # Windows
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 # ───────────── 와이드 레이아웃 ─────────────
 st.set_page_config(layout="wide")
@@ -109,11 +109,10 @@ with col1:
                 style = {"color": color, "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ✅ 현재 KPI 출력 (디자인 그대로)
-        current_cols[0].markdown(f"""<div style='text-align:center;'><div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div><div style='font-size:32px; font-weight:bold;'>{int(current_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div></div>""", unsafe_allow_html=True)
-        current_cols[1].markdown(f"""<div style='text-align:center;'><div style='font-size:14px; margin-bottom:4px;'>현재 최단거리</div><div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div></div>""", unsafe_allow_html=True)
-        current_cols[2].markdown(f"""<div style='text-align:center;'><div style='font-size:14px; margin-bottom:4px;'>현재 물류비</div><div style='font-size:32px; font-weight:bold;'>{int(current_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div></div>""", unsafe_allow_html=True)
-        current_cols[3].markdown(f"""<div style='text-align:center;'><div style='font-size:14px; margin-bottom:4px;'>현재 탄소배출량</div><div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65, 2)} <span style='font-size:18px;'>kg CO2</span></div></div>""", unsafe_allow_html=True)
+        current_cols[0].markdown(f"""<div style='text-align:center;'><div style='font-size:14px;'>현재 소요시간</div><div style='font-size:32px; font-weight:bold;'>{int(current_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div></div>""", unsafe_allow_html=True)
+        current_cols[1].markdown(f"""<div style='text-align:center;'><div style='font-size:14px;'>현재 최단거리</div><div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div></div>""", unsafe_allow_html=True)
+        current_cols[2].markdown(f"""<div style='text-align:center;'><div style='font-size:14px;'>현재 물류비</div><div style='font-size:32px; font-weight:bold;'>{int(current_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div></div>""", unsafe_allow_html=True)
+        current_cols[3].markdown(f"""<div style='text-align:center;'><div style='font-size:14px;'>현재 탄소배출량</div><div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65, 2)} <span style='font-size:18px;'>kg CO2</span></div></div>""", unsafe_allow_html=True)
 
         legend_items = ""
         for idx in range(len(c_pts)):
@@ -169,15 +168,15 @@ with col2:
         diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
         diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
 
-        dataso_cols[0].markdown(...)  # 그대로 유지
-        dataso_cols[1].markdown(...)
-        dataso_cols[2].markdown(...)
-        dataso_cols[3].markdown(...)
+        dataso_cols[0].markdown(f"""<div style='text-align:center;'><div style='font-size:14px;'>다타소 소요시간</div><div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} 분</div><div style='font-size:14px; color:red;'>- {diff_duration} 분</div></div>""", unsafe_allow_html=True)
+        dataso_cols[1].markdown(f"""<div style='text-align:center;'><div style='font-size:14px;'>다타소 최단거리</div><div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} km</div><div style='font-size:14px; color:red;'>- {diff_distance} km</div></div>""", unsafe_allow_html=True)
+        dataso_cols[2].markdown(f"""<div style='text-align:center;'><div style='font-size:14px;'>다타소 물류비</div><div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} 원</div><div style='font-size:14px; color:red;'>- {diff_cost:,} 원</div></div>""", unsafe_allow_html=True)
+        dataso_cols[3].markdown(f"""<div style='text-align:center;'><div style='font-size:14px;'>다타소 탄소배출량</div><div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65, 2)} kg CO2</div><div style='font-size:14px; color:red;'>- {diff_emission} kg CO2</div></div>""", unsafe_allow_html=True)
 
         legend_items = ""
         for idx in range(len(c_pts)):
-            legend_items += ...
-        legend_html_dataso = ...
+            legend_items += f"""<div style="display:flex; align-items:center; margin-bottom:5px;"><div style="width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;"></div>농가 {idx+1}</div>"""
+        legend_html_dataso = f"""<div style="position: fixed; top: 30px; right: 30px; background-color: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 2px 2px 8px rgba(0,0,0,0.2); padding: 10px 15px; z-index:9999; font-size: 13px;">{legend_items}<div style="display:flex; align-items:center; margin-top:5px;"><i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장</div></div>"""
         m.get_root().html.add_child(folium.Element(legend_html_dataso))
 
         fg.add_to(m)
@@ -186,62 +185,58 @@ with col2:
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
 
-# ───────────── 정책 + 그래프 카드 추가 ─────────────
+# ───────────── 정책 그래프 ─────────────
 st.markdown("---")
 st.markdown("### 📌 정책·활용방안 + 분석 인사이트")
 
 months = np.arange(1, 13)
 volumes = np.random.randint(50, 150, size=12)
+income = np.random.randint(5, 15, size=3)
+region_data = [np.random.normal(100, 15, 50),
+               np.random.normal(120, 20, 50),
+               np.random.normal(90, 10, 50)]
 prices = np.random.uniform(1000, 5000, 30)
 vols = np.random.uniform(40, 160, 30)
 farmers = ['농가 A', '농가 B', '농가 C']
-income = np.random.randint(5, 15, size=3)
 regions = ['권역 A', '권역 B', '권역 C']
-region_data = [np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)]
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("✅ 계절성 분석")
-    fig1, ax1 = plt.subplots(figsize=(4,2.5))
+    fig1, ax1 = plt.subplots(figsize=(4, 2.5))
     ax1.plot(months, volumes, marker='o')
     ax1.set_title("월별 운송량")
     st.pyplot(fig1)
 
-    st.markdown("✅ 실시간 교통정보")
-    fig2, ax2 = plt.subplots(figsize=(4,2.5))
-    ax2.plot(months, np.random.randint(60, 180, size=12))
-    ax2.set_title("도로 혼잡도")
+    st.markdown("✅ 농촌 상생")
+    fig2, ax2 = plt.subplots(figsize=(4, 2.5))
+    ax2.bar(farmers, income)
+    ax2.set_title("농가 소득 증대")
     st.pyplot(fig2)
 
-    st.markdown("✅ 탄소배출 계산")
-    fig3, ax3 = plt.subplots(figsize=(4,2.5))
-    ax3.plot(months, np.random.uniform(10, 30, size=12))
-    ax3.set_title("월별 탄소배출량")
+with col2:
+    st.markdown("✅ 축산업 혁신")
+    fig3, ax3 = plt.subplots(figsize=(4, 2.5))
+    ax3.plot(months, np.random.randint(70, 200, size=12))
+    ax3.set_title("스마트팜 데이터")
     st.pyplot(fig3)
 
-with col2:
-    st.markdown("✅ 농촌 상생")
-    fig4, ax4 = plt.subplots(figsize=(4,2.5))
-    ax4.bar(farmers, income)
-    ax4.set_title("농가 소득 증대")
+    st.markdown("✅ 지역별 특성")
+    fig4, ax4 = plt.subplots(figsize=(4, 2.5))
+    ax4.boxplot(region_data, labels=regions)
+    ax4.set_title("권역별 수요 변동성")
     st.pyplot(fig4)
 
-    st.markdown("✅ 축산업 혁신")
-    fig5, ax5 = plt.subplots(figsize=(4,2.5))
-    ax5.plot(months, np.random.randint(70, 200, size=12))
-    ax5.set_title("스마트팜 데이터")
+with col3:
+    st.markdown("✅ 탄소배출 계산")
+    fig5, ax5 = plt.subplots(figsize=(4, 2.5))
+    ax5.plot(months, np.random.uniform(10, 30, size=12))
+    ax5.set_title("월별 탄소배출량")
     st.pyplot(fig5)
 
-with col3:
-    st.markdown("✅ 지역별 특성")
-    fig6, ax6 = plt.subplots(figsize=(4,2.5))
-    ax6.boxplot(region_data, labels=regions)
-    ax6.set_title("권역별 수요 변동성")
-    st.pyplot(fig6)
-
     st.markdown("✅ 시장 동향")
-    fig7, ax7 = plt.subplots(figsize=(4,2.5))
-    ax7.scatter(prices, vols)
-    ax7.set_title("가격 vs 운송량")
-    st.pyplot(fig7)
+    fig6, ax6 = plt.subplots(figsize=(4, 2.5))
+    ax6.scatter(prices, vols)
+    ax6.set_title("가격 VS 운송량")
+    st.pyplot(fig6)
