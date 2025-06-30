@@ -279,133 +279,123 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import pandas as pd
 import matplotlib
 
-# ───────────── 기본 폰트 설정 ─────────────
-plt.rcParams['font.family'] = 'Malgun Gothic'
+# ───────────── Font & Style ─────────────
+plt.rcParams['font.family'] = 'Malgun Gothic'  # Windows: 맑은 고딕
 plt.rcParams['axes.unicode_minus'] = False
-
-# 한 단계 더 작은 폰트 크기 (논문 스타일)
-plt.rcParams.update({
-    'axes.titlesize': 10,
-    'axes.labelsize': 8,
-    'xtick.labelsize': 7,
-    'ytick.labelsize': 7,
-    'legend.fontsize': 7
-})
-
 sns.set_theme(style="whitegrid")
 
-st.set_page_config(layout="wide")
 st.markdown("---")
-st.markdown("# 📊 Compact Advanced Data Insights")
+st.markdown("## 📊 Advanced Data Insights")
 
-# ───────────── 랜덤 데이터 ─────────────
+# ───────────── Random Seed ─────────────
 np.random.seed(42)
 
+# ───────────── Raw Data ─────────────
+# 1) Farm Production
 farmers = [f'Farm {chr(65+i)}' for i in range(6)]
 production = np.random.randint(90, 160, size=6)
 
+# 2) Region Indicator
 zones = [f'Region {chr(65+i)}' for i in range(4)]
 region_data = [np.random.normal(100+10*i, 8+2*i, 70) for i in range(4)]
 
+# 3) Seasonal Index
 months = np.arange(1,13)
 seasonal = 60 + 18 * np.sin(np.linspace(0, 2*np.pi, 12)) + np.random.normal(0, 3, 12)
 growth = np.diff(seasonal, prepend=seasonal[0])
 
+# 4) Carbon Emission Ratio
 carbon_labels = ['Transport', 'Feed', 'Energy', 'Facility', 'Waste', 'Other']
 carbon_sizes = [30, 25, 20, 10, 10, 5]
 
+# 5) Innovation Correlation
 corr_matrix = np.round(np.random.uniform(0.1, 0.95, size=(6,6)), 2)
 
+# 6) Price vs Volume
 price = np.random.uniform(2000, 9000, 120)
 volume = 35 + 0.02*price + np.random.normal(0, 5, 120)
 
 # ───────────── Columns ─────────────
-# col1, col2, col3 with extra padding
-col1, col2, col3 = st.columns([1, 0.05, 1, 0.05, 1])
+col1, col2, col3 = st.columns(3)
 
 # ───────────── 1) Farm Production ─────────────
 with col1:
     st.markdown("### ✅ Farm Production")
-    fig, ax = plt.subplots(figsize=(4.5, 2.5))
+    fig, ax = plt.subplots(figsize=(4,3))
     sns.barplot(x=farmers, y=production, palette="pastel", ax=ax)
     mean_prod = np.mean(production)
-    ax.axhline(mean_prod, ls='--', color='red', label=f'Mean: {mean_prod:.1f}')
+    ax.axhline(mean_prod, ls='--', color='red', label='Mean')
     for i, v in enumerate(production):
-        ax.text(i, v+1.5, f"{v} t", ha='center', fontsize=7)
-    ax.set_ylabel("Production (tons)")
-    ax.set_xlabel("Farm")
-    ax.set_title("Annual Production", pad=6)
-    ax.legend(frameon=False)
-    fig.tight_layout(pad=1.0)
+        ax.text(i, v+2, f"{v} tons", ha='center', fontsize=7)
+    ax.set_ylabel("Production (tons)", fontsize=9)
+    ax.set_xlabel("Farm", fontsize=9)
+    ax.set_title("Annual Production per Farm")
+    ax.legend()
     st.pyplot(fig)
 
 # ───────────── 2) Region Indicator ─────────────
-with col3:
+with col2:
     st.markdown("### ✅ Regional Indicator")
-    fig, ax = plt.subplots(figsize=(4.5, 2.5))
-    bp = ax.boxplot(region_data, labels=zones, patch_artist=True,
+    fig, ax = plt.subplots(figsize=(4,3))
+    ax.boxplot(region_data, labels=zones, patch_artist=True,
                boxprops=dict(facecolor='#90be6d'),
-               medianprops=dict(color='white', linewidth=2))
+               medianprops=dict(color='white'))
     means = [np.mean(z) for z in region_data]
     for i, m in enumerate(means):
-        ax.text(i+1, m+1.5, f"{m:.1f}", ha='center', fontsize=7)
-    ax.set_ylabel("Indicator Score")
-    ax.set_xlabel("Region")
-    ax.set_title("Regional Indicator Distribution", pad=6)
-    fig.tight_layout(pad=1.0)
+        ax.text(i+1, m+2, f"{m:.1f}", ha='center', fontsize=7)
+    ax.set_ylabel("Indicator Score", fontsize=9)
+    ax.set_xlabel("Region", fontsize=9)
+    ax.set_title("Distribution of Regional Indicators")
     st.pyplot(fig)
 
 # ───────────── 3) Seasonal Index ─────────────
-with col1:
+with col3:
     st.markdown("### ✅ Seasonal Index")
-    fig, ax = plt.subplots(figsize=(4.5, 2.5))
+    fig, ax = plt.subplots(figsize=(4,3))
     sns.lineplot(x=months, y=seasonal, marker='o', color="#0077b6", ax=ax)
     for x, y, g in zip(months, seasonal, growth):
-        ax.text(x, y+0.5, f"{y:.1f}", ha='center', fontsize=6)
+        ax.text(x, y+0.8, f"{y:.1f}", ha='center', fontsize=6)
         if x > 1:
-            ax.annotate(f"{g:+.1f}", xy=(x,y), xytext=(x,y+2), fontsize=6)
-    ax.set_xlabel("Month")
-    ax.set_ylabel("Seasonal Index")
-    ax.set_title("Monthly Seasonal Trend", pad=6)
-    ax.set_xticks(months)
-    fig.tight_layout(pad=1.0)
+            ax.annotate(f"{g:+.1f}", xy=(x,y), xytext=(x,y+3), fontsize=6)
+    ax.set_xlabel("Month", fontsize=9)
+    ax.set_ylabel("Seasonal Index", fontsize=9)
+    ax.set_title("Monthly Seasonal Trend with Change")
     st.pyplot(fig)
 
 # ───────────── 4) Carbon Emission Ratio ─────────────
-with col3:
+with col1:
     st.markdown("### ✅ Carbon Emission Ratio")
-    fig, ax = plt.subplots(figsize=(3.5, 2.5))  # 작게!
+    fig, ax = plt.subplots(figsize=(4,3))
     wedges, texts, autotexts = ax.pie(
         carbon_sizes, labels=carbon_labels, autopct='%1.1f%%',
         colors=sns.color_palette("pastel"), startangle=90,
         wedgeprops=dict(width=0.5, edgecolor='w'))
-    ax.set_title("Carbon Emission Sources", pad=6)
-    fig.tight_layout(pad=1.0)
+    ax.set_title("Proportion of Carbon Emission Sources")
     st.pyplot(fig)
 
 # ───────────── 5) Innovation Correlation ─────────────
-with col1:
+with col2:
     st.markdown("### ✅ Innovation Correlation")
-    fig, ax = plt.subplots(figsize=(4.5, 2.5))
+    fig, ax = plt.subplots(figsize=(4,3))
     sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="YlGnBu",
-                linewidths=0.4, linecolor='grey',
+                linewidths=0.5, linecolor='grey',
                 cbar_kws={'label': 'Correlation'}, ax=ax)
-    ax.set_title("Innovation Factors Correlation", pad=6)
-    fig.tight_layout(pad=1.0)
+    ax.set_title("Correlation Between Innovation Factors")
     st.pyplot(fig)
 
 # ───────────── 6) Price vs Volume ─────────────
 with col3:
     st.markdown("### ✅ Price vs Volume")
-    fig, ax = plt.subplots(figsize=(4.5, 2.5))
+    fig, ax = plt.subplots(figsize=(4,3))
     sns.scatterplot(x=price, y=volume, color="#023047", s=30, edgecolor='w', ax=ax)
     m, b = np.polyfit(price, volume, 1)
-    ax.plot(price, m*price + b, color='red', linestyle='--', label=f'Trend: y={m:.2f}x+{b:.2f}')
-    ax.set_xlabel("Price (KRW/kg)")
-    ax.set_ylabel("Volume (tons)")
-    ax.set_title("Price vs Sales Volume", pad=6)
-    ax.legend(frameon=False)
-    fig.tight_layout(pad=1.0)
+    ax.plot(price, m*price + b, color='red', linestyle='--', label='Trendline')
+    ax.set_xlabel("Price (KRW/kg)", fontsize=9)
+    ax.set_ylabel("Volume (tons)", fontsize=9)
+    ax.set_title("Price vs Sales Volume with Trendline")
+    ax.legend()
     st.pyplot(fig)
+
