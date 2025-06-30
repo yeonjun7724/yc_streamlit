@@ -278,127 +278,139 @@ with col2:
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
 import streamlit as st
 
 # ───────────── 글로벌 설정 ─────────────
-plt.rcParams['font.family'] = 'Arial'  # 영문용
+plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['axes.unicode_minus'] = False
-plt.rcParams['font.size'] = 7  # 엄청 작게
+plt.rcParams['font.size'] = 6  # 전반 폰트 엄청 작게
 sns.set_style("whitegrid")
 
-# ───────────── 1) Seasonality Data ─────────────
-np.random.seed(42)
-months = np.arange(1, 13)
-season_values = []
-for m in months:
-    base = 50 + 10 * np.sin(2 * np.pi * m / 12)
-    for i in range(5):
-        season_values.append({"Month": m, "Shipment": base + np.random.normal(0, 2)})
+np.random.seed(123)
 
-df_season = pd.DataFrame(season_values)
+# ───────────── 1) Seasonality Data ─────────────
+months = np.tile(np.arange(1, 13), 50)
+season_shipments = []
+for m in range(1, 13):
+    base = 100 + 30 * np.sin(2 * np.pi * m / 12)
+    vals = base + np.random.normal(0, 5, 50)
+    for v in vals:
+        season_shipments.append({"Month": m, "Shipment": v})
+df_season = pd.DataFrame(season_shipments)
 
 # ───────────── 2) Farming Revenue ─────────────
 farms = ["Farm A", "Farm B", "Farm C"]
-revenue_values = []
+farm_revenues = []
 for farm in farms:
-    for i in range(10):
-        val = np.random.normal(100, 10)
+    for i in range(50):
+        val = np.random.normal(50000, 5000)
         if farm == "Farm B":
-            val += 20
+            val += 7000
         if farm == "Farm C":
-            val -= 15
-        revenue_values.append({"Farm": farm, "Revenue": val})
-
-df_farm = pd.DataFrame(revenue_values)
+            val -= 3000
+        farm_revenues.append({"Farm": farm, "Revenue": val})
+df_farm = pd.DataFrame(farm_revenues)
 
 # ───────────── 3) Innovation Heatmap ─────────────
-df_heat = pd.DataFrame(np.round(np.random.rand(10, 10), 2),
-                       columns=[f"V{i+1}" for i in range(10)],
-                       index=[f"S{i+1}" for i in range(10)])
+df_heat = pd.DataFrame(
+    np.round(np.random.rand(20, 20) * 100, 1),
+    columns=[f"V{i+1}" for i in range(20)],
+    index=[f"S{i+1}" for i in range(20)]
+)
 
 # ───────────── 4) Regional Production ─────────────
 regions = ["Region A", "Region B", "Region C"]
-region_values = []
+region_production = []
 for region in regions:
-    for i in range(30):
+    for i in range(70):
         if region == "Region A":
-            val = np.random.normal(90, 5)
+            val = np.random.normal(150, 20)
         elif region == "Region B":
-            val = np.random.normal(110, 10)
+            val = np.random.normal(200, 30)
         else:
-            val = np.random.normal(80, 4)
-        region_values.append({"Region": region, "Production": val})
+            val = np.random.normal(100, 15)
+        region_production.append({"Region": region, "Production": val})
+df_region = pd.DataFrame(region_production)
 
-df_region = pd.DataFrame(region_values)
-
-# ───────────── 5) Carbon Pie ─────────────
+# ───────────── 5) Carbon Pie: seaborn -> bar 대신 donut plot ─────────────
 df_carbon = pd.DataFrame({
-    "Category": ["Transport", "Feed", "Others"],
-    "Ratio": [0.35, 0.45, 0.20]
+    "Category": ["Transport", "Feed", "Processing", "Waste", "Others"],
+    "Ratio": [0.4, 0.25, 0.15, 0.1, 0.1]
 })
 
 # ───────────── 6) Market Scatter ─────────────
-prices = np.random.uniform(1000, 5000, 100)
-volumes = 30 + 0.01 * prices + np.random.normal(0, 3, 100)
+prices = np.random.uniform(1000, 20000, 200)
+volumes = 100 + 0.02 * prices + np.random.normal(0, 10, 200)
 df_market = pd.DataFrame({"Price": prices, "Volume": volumes})
 
 # ───────────── Streamlit Section ─────────────
 st.markdown("---")
-st.markdown("### 📊 Policy Sample Graphs (English / Fine-grained)")
+st.markdown("### 📊 Fine-Grained Sample Graphs (All Seaborn)")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("#### ✅ Seasonality")
-    fig1, ax1 = plt.subplots(figsize=(4, 2.5))
-    sns.lineplot(data=df_season, x="Month", y="Shipment", marker='o', ax=ax1, ci=None)
-    ax1.set_title("Monthly Shipment", fontsize=8)
-    ax1.set_xlabel("Month", fontsize=7)
-    ax1.set_ylabel("Shipment Volume", fontsize=7)
-    ax1.tick_params(axis='both', labelsize=7)
+    st.markdown("#### ✅ Seasonality (Seaborn)")
+    fig1, ax1 = plt.subplots(figsize=(3.5, 2))
+    sns.lineplot(data=df_season, x="Month", y="Shipment", ci="sd", marker='o',
+                 linewidth=0.8, markersize=3, ax=ax1)
+    ax1.set_title("Monthly Shipment (Detailed)", fontsize=6)
+    ax1.set_xlabel("Month", fontsize=6)
+    ax1.set_ylabel("Shipment", fontsize=6)
+    ax1.tick_params(axis='both', labelsize=6)
     st.pyplot(fig1)
 
-    st.markdown("#### ✅ Farming Revenue")
-    fig2, ax2 = plt.subplots(figsize=(4, 2.5))
-    sns.boxplot(data=df_farm, x="Farm", y="Revenue", palette="pastel", ax=ax2)
-    ax2.set_title("Revenue by Farm", fontsize=8)
+    st.markdown("#### ✅ Farming Revenue (Seaborn)")
+    fig2, ax2 = plt.subplots(figsize=(3.5, 2))
+    sns.violinplot(data=df_farm, x="Farm", y="Revenue", palette="muted", ax=ax2)
+    sns.swarmplot(data=df_farm, x="Farm", y="Revenue", color=".3", size=2, ax=ax2)
+    ax2.set_title("Farm Revenue Distribution", fontsize=6)
     ax2.set_xlabel("")
-    ax2.set_ylabel("Revenue ($)", fontsize=7)
-    ax2.tick_params(axis='both', labelsize=7)
+    ax2.set_ylabel("Revenue ($)", fontsize=6)
+    ax2.tick_params(axis='both', labelsize=6)
     st.pyplot(fig2)
 
 with col2:
-    st.markdown("#### ✅ Innovation Heatmap")
-    fig3, ax3 = plt.subplots(figsize=(4, 2.5))
-    sns.heatmap(df_heat, annot=True, fmt=".2f", cmap="Blues", cbar=False, ax=ax3)
-    ax3.set_title("Innovation Index", fontsize=8)
+    st.markdown("#### ✅ Innovation Heatmap (Seaborn)")
+    fig3, ax3 = plt.subplots(figsize=(3.5, 2))
+    sns.heatmap(df_heat, annot=True, fmt=".1f", cmap="YlGnBu",
+                cbar=False, annot_kws={"size": 4}, ax=ax3)
+    ax3.set_title("Innovation Matrix", fontsize=6)
     st.pyplot(fig3)
 
-    st.markdown("#### ✅ Regional Production")
-    fig4, ax4 = plt.subplots(figsize=(4, 2.5))
+    st.markdown("#### ✅ Regional Production (Seaborn)")
+    fig4, ax4 = plt.subplots(figsize=(3.5, 2))
     sns.boxplot(data=df_region, x="Region", y="Production", ax=ax4)
-    ax4.set_title("Production by Region", fontsize=8)
+    sns.stripplot(data=df_region, x="Region", y="Production",
+                  color=".3", size=2, jitter=True, ax=ax4)
+    ax4.set_title("Production by Region", fontsize=6)
     ax4.set_xlabel("")
-    ax4.set_ylabel("Production", fontsize=7)
-    ax4.tick_params(axis='both', labelsize=7)
+    ax4.set_ylabel("Production", fontsize=6)
+    ax4.tick_params(axis='both', labelsize=6)
     st.pyplot(fig4)
 
 with col3:
-    st.markdown("#### ✅ Carbon Emission")
-    fig5, ax5 = plt.subplots(figsize=(4, 2.5))
-    ax5.pie(df_carbon["Ratio"], labels=df_carbon["Category"], autopct='%1.1f%%',
-            textprops={'fontsize': 7})
-    ax5.set_title("Carbon Breakdown", fontsize=8)
+    st.markdown("#### ✅ Carbon Emission (Seaborn Style)")
+    fig5, ax5 = plt.subplots(figsize=(3.5, 2))
+    df_carbon_sorted = df_carbon.sort_values("Ratio", ascending=False)
+    wedges, texts, autotexts = ax5.pie(df_carbon_sorted["Ratio"],
+                                       labels=df_carbon_sorted["Category"],
+                                       autopct='%1.1f%%',
+                                       textprops={'fontsize': 6},
+                                       wedgeprops=dict(width=0.4))
+    ax5.set_title("Carbon Emission Breakdown", fontsize=6)
     st.pyplot(fig5)
 
-    st.markdown("#### ✅ Market Trend")
-    fig6, ax6 = plt.subplots(figsize=(4, 2.5))
-    sns.scatterplot(data=df_market, x="Price", y="Volume", ax=ax6)
-    ax6.set_title("Price vs. Volume", fontsize=8)
-    ax6.set_xlabel("Price ($)", fontsize=7)
-    ax6.set_ylabel("Volume", fontsize=7)
-    ax6.tick_params(axis='both', labelsize=7)
+    st.markdown("#### ✅ Market Trend (Seaborn)")
+    fig6, ax6 = plt.subplots(figsize=(3.5, 2))
+    sns.scatterplot(data=df_market, x="Price", y="Volume",
+                    size=None, s=8, ax=ax6)
+    sns.regplot(data=df_market, x="Price", y="Volume",
+                scatter=False, color="red", ax=ax6)
+    ax6.set_title("Price vs Volume", fontsize=6)
+    ax6.set_xlabel("Price ($)", fontsize=6)
+    ax6.set_ylabel("Volume", fontsize=6)
+    ax6.tick_params(axis='both', labelsize=6)
     st.pyplot(fig6)
-
