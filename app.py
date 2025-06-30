@@ -335,12 +335,12 @@ df_market = pd.DataFrame({"Price": prices, "Volume": volumes})
 
 # ───────────── Streamlit Layout ─────────────
 st.markdown("---")
-st.markdown("### 📊 Final Seaborn Graphs (Perfectly aligned, gap large)")
+st.markdown("#### 농가별 세부사항 분석")
 
 row1 = st.columns(3, gap="large")
 
 with row1[0]:
-    st.markdown("#### ✅ Seasonality")
+    st.markdown("##### 계절성 분석: 월별, 분기별 운송 패턴 분석")
     fig1, ax1 = plt.subplots(figsize=(4, 2.5))
     sns.lineplot(data=df_season, x="Month", y="Shipment", ci="sd", marker='o',
                  linewidth=0.8, markersize=2, ax=ax1,
@@ -352,7 +352,7 @@ with row1[0]:
     st.pyplot(fig1)
 
 with row1[1]:
-    st.markdown("#### ✅ Farming Revenue")
+    st.markdown("##### 지역별 특성: 권역별 운송 수요 변동성 예측")
     fig2, ax2 = plt.subplots(figsize=(6, 3.5))  # 높이 더 늘림
     sns.boxplot(data=df_farm, x="Farm", y="Revenue",
                 palette="Paired", ax=ax2)
@@ -366,7 +366,7 @@ with row1[1]:
     st.pyplot(fig2)
 
 with row1[2]:
-    st.markdown("#### ✅ Innovation Heatmap")
+    st.markdown("##### 시장 동향 반영: 가격 변동과 운송량 상관관계 분석")
     fig3, ax3 = plt.subplots(figsize=(4, 2.5))
     sns.heatmap(df_heat, annot=True, fmt=".1f", cmap="coolwarm",
                 cbar=False, annot_kws={"size": 4}, ax=ax3)
@@ -377,7 +377,7 @@ with row1[2]:
 row2 = st.columns(3, gap="large")
 
 with row2[0]:
-    st.markdown("#### ✅ Regional Production")
+    st.markdown("##### 지역별 특성: 권역별 운송 수요 변동성 예측")
     fig4, ax4 = plt.subplots(figsize=(4, 2.5))
     sns.boxplot(data=df_region, x="Region", y="Production",
                 palette="Paired", ax=ax4)
@@ -390,7 +390,7 @@ with row2[0]:
     st.pyplot(fig4)
 
 with row2[1]:
-    st.markdown("#### ✅ Carbon Emission (Donut)")
+    st.markdown("##### 탄소배출 계산: 정부 탄소중립 정책 기여도 측정")
     fig5, ax5 = plt.subplots(figsize=(1.0, 1.0), dpi=500)  # ✅ DPI 높여 선명!
     colors = sns.color_palette("Paired")
     wedges, texts, autotexts = ax5.pie(
@@ -408,7 +408,7 @@ with row2[1]:
     st.pyplot(fig5)
 
 with row2[2]:
-    st.markdown("#### ✅ Market Trend")
+    st.markdown("##### 농촌 상생: 농가 소득증대 및 지역경제 활성화")
     fig6, ax6 = plt.subplots(figsize=(4, 2.5))
     sns.scatterplot(data=df_market, x="Price", y="Volume",
                     s=8, color=sns.color_palette("Paired")[0], ax=ax6)
