@@ -285,7 +285,7 @@ import matplotlib
 plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
 
-# 작고 깔끔한 논문 스타일 폰트
+# 한 단계 더 작은 폰트 크기 (논문 스타일)
 plt.rcParams.update({
     'axes.titlesize': 10,
     'axes.labelsize': 8,
@@ -295,46 +295,35 @@ plt.rcParams.update({
 })
 
 sns.set_theme(style="whitegrid")
+
 st.set_page_config(layout="wide")
-
 st.markdown("---")
-st.markdown("# 📊 Final Safe Dashboard")
+st.markdown("# 📊 Compact Advanced Data Insights")
 
-# ───────────── 안전한 데이터 ─────────────
+# ───────────── 랜덤 데이터 ─────────────
 np.random.seed(42)
 
-# Farm Production
 farmers = [f'Farm {chr(65+i)}' for i in range(6)]
 production = np.random.randint(90, 160, size=6)
 
-# Region Indicator
 zones = [f'Region {chr(65+i)}' for i in range(4)]
 region_data = [np.random.normal(100+10*i, 8+2*i, 70) for i in range(4)]
 
-# Seasonal Index
 months = np.arange(1,13)
 seasonal = 60 + 18 * np.sin(np.linspace(0, 2*np.pi, 12)) + np.random.normal(0, 3, 12)
 growth = np.diff(seasonal, prepend=seasonal[0])
 
-# Carbon Emission
 carbon_labels = ['Transport', 'Feed', 'Energy', 'Facility', 'Waste', 'Other']
 carbon_sizes = [30, 25, 20, 10, 10, 5]
 
-# Innovation Correlation
 corr_matrix = np.round(np.random.uniform(0.1, 0.95, size=(6,6)), 2)
 
-# Price vs Volume
 price = np.random.uniform(2000, 9000, 120)
-volume = 35 + 0.02 * price + np.random.normal(0, 5, 120)
+volume = 35 + 0.02*price + np.random.normal(0, 5, 120)
 
-# ✅ Shape & NaN check
-st.write("Price shape:", price.shape)
-st.write("Volume shape:", volume.shape)
-st.write("Any NaN in price?", np.isnan(price).any())
-st.write("Any NaN in volume?", np.isnan(volume).any())
-
-# ───────────── 안전한 3열 ─────────────
-col1, col2, col3 = st.columns(3)
+# ───────────── Columns ─────────────
+# col1, col2, col3 with extra padding
+col1, col2, col3 = st.columns([1, 0.05, 1, 0.05, 1])
 
 # ───────────── 1) Farm Production ─────────────
 with col1:
@@ -353,10 +342,10 @@ with col1:
     st.pyplot(fig)
 
 # ───────────── 2) Region Indicator ─────────────
-with col2:
+with col3:
     st.markdown("### ✅ Regional Indicator")
     fig, ax = plt.subplots(figsize=(4.5, 2.5))
-    ax.boxplot(region_data, labels=zones, patch_artist=True,
+    bp = ax.boxplot(region_data, labels=zones, patch_artist=True,
                boxprops=dict(facecolor='#90be6d'),
                medianprops=dict(color='white', linewidth=2))
     means = [np.mean(z) for z in region_data]
@@ -369,7 +358,7 @@ with col2:
     st.pyplot(fig)
 
 # ───────────── 3) Seasonal Index ─────────────
-with col3:
+with col1:
     st.markdown("### ✅ Seasonal Index")
     fig, ax = plt.subplots(figsize=(4.5, 2.5))
     sns.lineplot(x=months, y=seasonal, marker='o', color="#0077b6", ax=ax)
@@ -384,10 +373,10 @@ with col3:
     fig.tight_layout(pad=1.0)
     st.pyplot(fig)
 
-# ───────────── 4) Carbon Emission ─────────────
-with col1:
+# ───────────── 4) Carbon Emission Ratio ─────────────
+with col3:
     st.markdown("### ✅ Carbon Emission Ratio")
-    fig, ax = plt.subplots(figsize=(3.5, 2.5))
+    fig, ax = plt.subplots(figsize=(3.5, 2.5))  # 작게!
     wedges, texts, autotexts = ax.pie(
         carbon_sizes, labels=carbon_labels, autopct='%1.1f%%',
         colors=sns.color_palette("pastel"), startangle=90,
@@ -397,7 +386,7 @@ with col1:
     st.pyplot(fig)
 
 # ───────────── 5) Innovation Correlation ─────────────
-with col2:
+with col1:
     st.markdown("### ✅ Innovation Correlation")
     fig, ax = plt.subplots(figsize=(4.5, 2.5))
     sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="YlGnBu",
@@ -420,4 +409,3 @@ with col3:
     ax.legend(frameon=False)
     fig.tight_layout(pad=1.0)
     st.pyplot(fig)
-
