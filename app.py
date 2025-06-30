@@ -391,16 +391,18 @@ with row2[0]:
 
 with row2[1]:
     st.markdown("#### ✅ Carbon Emission (Donut)")
-    fig5, ax5 = plt.subplots(figsize=(0.5, 0.5))  # 도넛차트만 훨씬 작게!
+    fig5, ax5 = plt.subplots(figsize=(1.2, 1.2))  # 크기 극소형!
     colors = sns.color_palette("Paired")
     wedges, texts, autotexts = ax5.pie(
         df_carbon["Ratio"],
         labels=df_carbon["Category"],
         colors=colors[:5],
         autopct='%1.1f%%',
-        textprops={'fontsize': 1},
+        textprops={'fontsize': 3},  # 퍼센트 글씨 극소
         wedgeprops=dict(width=0.35)
     )
+    for text in texts:
+        text.set_fontsize(3)  # 카테고리 레이블도 극소
     ax5.set_title("")  # 제목 제거
     st.pyplot(fig5)
 
