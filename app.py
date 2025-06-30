@@ -7,6 +7,8 @@ import folium
 from folium import Map, FeatureGroup, GeoJson
 from folium.features import DivIcon
 from streamlit.components.v1 import html
+import matplotlib.pyplot as plt
+import numpy as np
 
 # ───────────── 와이드 레이아웃 ─────────────
 st.set_page_config(layout="wide")
@@ -105,34 +107,6 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        current_cols[0].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(current_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        current_cols[1].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>현재 최단거리</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        current_cols[2].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>현재 물류비</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(current_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        current_cols[3].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>현재 탄소배출량</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65, 2)} <span style='font-size:18px;'>kg CO2</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
         fg.add_to(m)
         render_map(m)
 
@@ -150,8 +124,6 @@ with col2:
         c_pts = dataso_grp[dataso_grp["location_t"] == "C"].sort_values("stop_seq").reset_index()
         d_pt = dataso_grp[dataso_grp["location_t"] == "D"].geometry.iloc[0]
 
-        dataso_total_duration_sec, dataso_total_distance_km = 0, 0
-
         for i, row in c_pts.iterrows():
             folium.Marker([row.geometry.y, row.geometry.x], icon=DivIcon(
                 icon_size=(30,30), icon_anchor=(15,15),
@@ -160,72 +132,70 @@ with col2:
 
         folium.Marker([d_pt.y, d_pt.x], icon=folium.Icon(icon="flag-checkered", prefix="fa", color="red")).add_to(fg)
 
-        for i in range(len(c_pts)):
-            start = c_pts.geometry.iloc[i]
-            end = c_pts.geometry.iloc[i+1] if i < len(c_pts)-1 else d_pt
-
-            url = f"https://api.mapbox.com/directions/v5/mapbox/driving/{start.x},{start.y};{end.x},{end.y}"
-            res = requests.get(url, params=params).json()
-            routes = res.get("routes") or []
-
-            if routes:
-                dataso_total_duration_sec += routes[0]["duration"]
-                dataso_total_distance_km += routes[0]["distance"] / 1000
-                coords = routes[0]["geometry"]["coordinates"]
-                line = LineString(coords)
-                style = {"color": palette[i % len(palette)], "weight": 5}
-                GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
-
-        dataso_cols[0].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        dataso_cols[1].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 최단거리</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        dataso_cols[2].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 물류비</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        dataso_cols[3].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 탄소배출량</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
         fg.add_to(m)
         render_map(m)
 
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
 
-# ───────────── 정책·활용방안 요약 박스 ─────────────
+# ───────────── 정책·활용방안 + 샘플 그래프 ─────────────
 st.markdown("---")
 st.markdown("#### 📌 정책·활용방안")
 st.markdown("""
-<div style="
-    background-color: #f9f9f9; 
-    border-left: 6px solid #1f77b4; 
-    padding: 20px; 
-    border-radius: 6px; 
-    font-size: 15px;">
-    ✅ <strong>실시간 교통정보:</strong> 도로 상황 반영한 동적 경로 조정<br>
-    ✅ <strong>탄소배출 계산:</strong> 정부 탄소중립 정책 기여도 측정<br>
-    ✅ <strong>축산업 혁신:</strong> 스마트팜 정책과 연계한 디지털 전환<br>
-    ✅ <strong>농촌 상생:</strong> 농가 소득증대 및 지역경제 활성화<br>
-    ✅ <strong>계절성 분석:</strong> 월별, 분기별 운송 패턴 분석<br>
-    ✅ <strong>지역별 특성:</strong> 권역별 운송 수요 변동성 예측<br>
-    ✅ <strong>시장 동향 반영:</strong> 가격 변동과 운송량 상관관계 분석
-</div>
-""", unsafe_allow_html=True)
+✅ 실시간 교통정보: 도로 상황 반영한 동적 경로 조정  
+✅ 탄소배출 계산: 정부 탄소중립 정책 기여도 측정  
+✅ 축산업 혁신: 스마트팜 정책과 연계한 디지털 전환  
+✅ 농촌 상생: 농가 소득증대 및 지역경제 활성화  
+✅ 계절성 분석: 월별, 분기별 운송 패턴 분석  
+✅ 지역별 특성: 권역별 운송 수요 변동성 예측  
+✅ 시장 동향 반영: 가격 변동과 운송량 상관관계 분석
+""")
+
+# ───────────── 샘플 그래프 영역 ─────────────
+st.markdown("#### 📊 분석 샘플 그래프 (예시)")
+
+# 1) 계절성 분석: 월별 운송량
+months = np.arange(1, 13)
+volumes = np.random.randint(50, 150, size=12)
+fig1, ax1 = plt.subplots()
+ax1.plot(months, volumes, marker='o', linestyle='-', color='#1f77b4')
+ax1.set_title("월별 운송량 추이 (계절성 분석)")
+ax1.set_xlabel("월")
+ax1.set_ylabel("운송량 (톤)")
+ax1.grid(True)
+
+# 2) 가격 변동 vs 운송량
+prices = np.random.uniform(1000, 5000, 30)
+volumes = np.random.uniform(40, 160, 30)
+fig2, ax2 = plt.subplots()
+ax2.scatter(prices, volumes, color='#ff7f0e', alpha=0.7)
+ax2.set_title("가격 변동 vs 운송량 (시장 동향)")
+ax2.set_xlabel("가격 (원/kg)")
+ax2.set_ylabel("운송량 (톤)")
+ax2.grid(True)
+
+# 3) 권역별 운송 수요 변동성
+regions = ['권역 A', '권역 B', '권역 C']
+data = [np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)]
+fig3, ax3 = plt.subplots()
+ax3.boxplot(data, labels=regions)
+ax3.set_title("권역별 운송 수요 변동성 (지역별 특성)")
+ax3.set_ylabel("운송량 (톤)")
+ax3.grid(True)
+
+# 4) 농촌 상생: 농가별 소득 증대
+farmers = ['농가 A', '농가 B', '농가 C', '농가 D']
+income = np.random.randint(5, 15, size=4)
+fig4, ax4 = plt.subplots()
+ax4.bar(farmers, income, color='#2ca02c')
+ax4.set_title("농가별 예상 소득 증대 (농촌 상생)")
+ax4.set_ylabel("소득 증대율 (%)")
+ax4.grid(axis='y')
+
+col_g1, col_g2 = st.columns(2)
+with col_g1:
+    st.pyplot(fig1)
+    st.pyplot(fig3)
+with col_g2:
+    st.pyplot(fig2)
+    st.pyplot(fig4)
