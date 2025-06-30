@@ -105,7 +105,6 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ✅ 현재 KPI 출력 (다타소와 동일 스타일)
         current_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div>
@@ -133,34 +132,6 @@ with col1:
                 <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65, 2)} <span style='font-size:18px;'>kg CO2</span></div>
             </div>
         """, unsafe_allow_html=True)
-
-        # ✅ 현재 지도 범례 (범례 타이틀 제거)
-        legend_items = ""
-        for idx in range(len(c_pts)):
-            legend_items += f"""
-                <div style="display:flex; align-items:center; margin-bottom:5px;">
-                    <div style="width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;"></div>
-                    농가 {idx+1}
-                </div>
-            """
-        legend_html_current = f"""
-        <div style="
-            position: fixed; 
-            top: 30px; right: 30px; 
-            background-color: white; 
-            border: 1px solid #ddd; 
-            border-radius: 8px;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-            padding: 10px 15px; 
-            z-index:9999; 
-            font-size: 13px;">
-            {legend_items}
-            <div style="display:flex; align-items:center; margin-top:5px;">
-                <i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장
-            </div>
-        </div>
-        """
-        m.get_root().html.add_child(folium.Element(legend_html_current))
 
         fg.add_to(m)
         render_map(m)
@@ -205,16 +176,10 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        diff_duration = int((current_total_duration_sec - dataso_total_duration_sec) // 60)
-        diff_distance = round(current_total_distance_km - dataso_total_distance_km, 2)
-        diff_cost     = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
-        diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
-
         dataso_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
                 <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_duration} 분</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -222,7 +187,6 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 최단거리</div>
                 <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_distance} km</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -230,7 +194,6 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 물류비</div>
                 <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_cost:,} 원</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -238,39 +201,31 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 탄소배출량</div>
                 <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_emission} kg CO2</div>
             </div>
         """, unsafe_allow_html=True)
-
-        legend_items = ""
-        for idx in range(len(c_pts)):
-            legend_items += f"""
-                <div style="display:flex; align-items:center; margin-bottom:5px;">
-                    <div style="width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;"></div>
-                    농가 {idx+1}
-                </div>
-            """
-        legend_html_dataso = f"""
-        <div style="
-            position: fixed; 
-            top: 30px; right: 30px; 
-            background-color: white; 
-            border: 1px solid #ddd; 
-            border-radius: 8px;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-            padding: 10px 15px; 
-            z-index:9999; 
-            font-size: 13px;">
-            {legend_items}
-            <div style="display:flex; align-items:center; margin-top:5px;">
-                <i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장
-            </div>
-        </div>
-        """
-        m.get_root().html.add_child(folium.Element(legend_html_dataso))
 
         fg.add_to(m)
         render_map(m)
 
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
+
+# ───────────── 정책·활용방안 요약 박스 ─────────────
+st.markdown("---")
+st.markdown("#### 📌 정책·활용방안")
+st.markdown("""
+<div style="
+    background-color: #f9f9f9; 
+    border-left: 6px solid #1f77b4; 
+    padding: 20px; 
+    border-radius: 6px; 
+    font-size: 15px;">
+    ✅ <strong>실시간 교통정보:</strong> 도로 상황 반영한 동적 경로 조정<br>
+    ✅ <strong>탄소배출 계산:</strong> 정부 탄소중립 정책 기여도 측정<br>
+    ✅ <strong>축산업 혁신:</strong> 스마트팜 정책과 연계한 디지털 전환<br>
+    ✅ <strong>농촌 상생:</strong> 농가 소득증대 및 지역경제 활성화<br>
+    ✅ <strong>계절성 분석:</strong> 월별, 분기별 운송 패턴 분석<br>
+    ✅ <strong>지역별 특성:</strong> 권역별 운송 수요 변동성 예측<br>
+    ✅ <strong>시장 동향 반영:</strong> 가격 변동과 운송량 상관관계 분석
+</div>
+""", unsafe_allow_html=True)
