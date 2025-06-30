@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-# ───────────── ✅ 페이지 세팅 (딱 한 번) ─────────────
+# ───────────── ✅ 페이지 설정 (딱 한 번) ─────────────
 st.set_page_config(layout="wide")
 
 # ───────────── ✅ 상단 로고 + 제목 ─────────────
@@ -35,7 +35,7 @@ st.markdown(
 )
 
 # ───────────── ✅ Map 공통 상수 ─────────────
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
+MAPBOX_TOKEN = "YOUR_MAPBOX_TOKEN"
 ASIS_PATH = "cb_tobe_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
@@ -66,7 +66,7 @@ def render_map(m, height=600):
 
 col1, col2 = st.columns(2, gap="large")
 
-# ───────────── ✅ 현재 경로 ─────────────
+# ───────────── ✅ 현재 경로 (KPI 디자인 원본 유지) ─────────────
 with col1:
     st.markdown("#### 현재")
     try:
@@ -105,15 +105,38 @@ with col1:
         fg.add_to(m)
         render_map(m)
 
-        current_cols[0].markdown(f"**소요시간:** {int(current_total_duration_sec // 60)}분")
-        current_cols[1].markdown(f"**최단거리:** {round(current_total_distance_km, 2)} km")
-        current_cols[2].markdown(f"**물류비:** {int(current_total_distance_km*5000):,} 원")
-        current_cols[3].markdown(f"**탄소배출량:** {round(current_total_distance_km*0.65, 2)} kg CO2")
+        current_cols[0].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(current_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        current_cols[1].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 최단거리</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        current_cols[2].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 물류비</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(current_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        current_cols[3].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 탄소배출량</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65, 2)} <span style='font-size:18px;'>kg CO2</span></div>
+            </div>
+        """, unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"[현재 에러] {e}")
 
-# ───────────── ✅ 다타소(DaTaSo) 경로 ─────────────
+# ───────────── ✅ 다타소(DaTaSo) 경로 (KPI 원본 유지) ─────────────
 with col2:
     st.markdown("#### 다타소(DaTaSo) 도입 후")
     try:
@@ -156,23 +179,48 @@ with col2:
         diff_cost     = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
         diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
 
-        dataso_cols[0].markdown(f"**소요시간:** {int(dataso_total_duration_sec // 60)}분 (↓{diff_duration}분)")
-        dataso_cols[1].markdown(f"**최단거리:** {round(dataso_total_distance_km, 2)} km (↓{diff_distance} km)")
-        dataso_cols[2].markdown(f"**물류비:** {int(dataso_total_distance_km*5000):,} 원 (↓{diff_cost:,} 원)")
-        dataso_cols[3].markdown(f"**탄소배출량:** {round(dataso_total_distance_km*0.65, 2)} kg CO2 (↓{diff_emission} kg CO2)")
+        dataso_cols[0].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_duration} 분</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        dataso_cols[1].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 최단거리</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_distance} km</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        dataso_cols[2].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 물류비</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_cost:,} 원</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        dataso_cols[3].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 탄소배출량</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span></div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_emission} kg CO2</div>
+            </div>
+        """, unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
 
-# ───────────── ✅ 구분선 ─────────────
+# ───────────── ✅ 구분선 + 정책 그래프 ─────────────
 st.markdown("---")
 st.markdown("## 📊 Advanced Data Insights")
 
-# ───────────── ✅ 그래프 ─────────────
 plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
 sns.set_theme(style="whitegrid")
-
 np.random.seed(42)
 
 farmers = [f'Farm {chr(65+i)}' for i in range(6)]
@@ -181,46 +229,45 @@ zones = [f'Region {chr(65+i)}' for i in range(4)]
 region_data = [np.random.normal(100+10*i, 8+2*i, 70) for i in range(4)]
 months = np.arange(1,13)
 seasonal = 60 + 18 * np.sin(np.linspace(0, 2*np.pi, 12)) + np.random.normal(0, 3, 12)
-growth = np.diff(seasonal, prepend=seasonal[0])
 carbon_labels = ['Transport', 'Feed', 'Energy', 'Facility', 'Waste', 'Other']
 carbon_sizes = [30, 25, 20, 10, 10, 5]
 corr_matrix = np.round(np.random.uniform(0.1, 0.95, size=(6,6)), 2)
 price = np.random.uniform(2000, 9000, 120)
 volume = 35 + 0.02*price + np.random.normal(0, 5, 120)
 
-col1, col2, col3 = st.columns(3)
+col3, col4, col5 = st.columns(3)
 
-with col1:
+with col3:
     fig, ax = plt.subplots(figsize=(4,3))
     sns.barplot(x=farmers, y=production, palette="pastel", ax=ax)
     ax.set_title("Farm Production")
     st.pyplot(fig)
 
-with col2:
+with col4:
     fig, ax = plt.subplots(figsize=(4,3))
     ax.boxplot(region_data, labels=zones)
     ax.set_title("Region Indicator")
     st.pyplot(fig)
 
-with col3:
+with col5:
     fig, ax = plt.subplots(figsize=(4,3))
-    sns.lineplot(x=months, y=seasonal, marker='o', color="#0077b6", ax=ax)
+    sns.lineplot(x=months, y=seasonal, ax=ax)
     ax.set_title("Seasonal Index")
     st.pyplot(fig)
 
-with col1:
+with col3:
     fig, ax = plt.subplots(figsize=(4,3))
-    wedges, _, _ = ax.pie(carbon_sizes, labels=carbon_labels, autopct='%1.1f%%', startangle=90)
+    wedges, _, _ = ax.pie(carbon_sizes, labels=carbon_labels, autopct='%1.1f%%')
     ax.set_title("Carbon Emission Ratio")
     st.pyplot(fig)
 
-with col2:
+with col4:
     fig, ax = plt.subplots(figsize=(4,3))
     sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="YlGnBu", ax=ax)
     ax.set_title("Innovation Correlation")
     st.pyplot(fig)
 
-with col3:
+with col5:
     fig, ax = plt.subplots(figsize=(4,3))
     sns.scatterplot(x=price, y=volume, ax=ax)
     m, b = np.polyfit(price, volume, 1)
