@@ -345,7 +345,6 @@ with row1[0]:
     sns.lineplot(data=df_season, x="Month", y="Shipment", ci="sd", marker='o',
                  linewidth=0.8, markersize=2, ax=ax1,
                  palette=sns.color_palette("Paired"))
-    ax1.set_title("Monthly Shipment", fontsize=6)
     ax1.set_xlabel("Month", fontsize=6)
     ax1.set_ylabel("Shipment", fontsize=6)
     ax1.tick_params(axis='both', labelsize=6)
@@ -358,7 +357,6 @@ with row1[1]:
                 palette="Paired", ax=ax2)
     sns.stripplot(data=df_farm, x="Farm", y="Revenue",
                   color=".3", size=1.5, jitter=True, ax=ax2)
-    ax2.set_title("Revenue by Farm (10)", fontsize=6)
     ax2.set_xlabel("", fontsize=6)
     ax2.set_ylabel("Revenue ($)", fontsize=6)
     ax2.tick_params(axis='x', rotation=30, labelsize=6)
@@ -370,7 +368,6 @@ with row1[2]:
     fig3, ax3 = plt.subplots(figsize=(4, 2.5))
     sns.heatmap(df_heat, annot=True, fmt=".1f", cmap="coolwarm",
                 cbar=False, annot_kws={"size": 4}, ax=ax3)
-    ax3.set_title("Innovation Matrix", fontsize=6)
     ax3.tick_params(axis='both', labelsize=6)
     st.pyplot(fig3)
 
@@ -383,7 +380,6 @@ with row2[0]:
                 palette="Paired", ax=ax4)
     sns.stripplot(data=df_region, x="Region", y="Production",
                   color=".3", size=1.5, jitter=True, ax=ax4)
-    ax4.set_title("Production by Region", fontsize=6)
     ax4.set_xlabel("", fontsize=6)
     ax4.set_ylabel("Production", fontsize=6)
     ax4.tick_params(axis='both', labelsize=6)
@@ -414,7 +410,6 @@ with row2[2]:
                     s=8, color=sns.color_palette("Paired")[0], ax=ax6)
     sns.regplot(data=df_market, x="Price", y="Volume",
                 scatter=False, color=sns.color_palette("Paired")[1], ax=ax6)
-    ax6.set_title("Price vs Volume", fontsize=6)
     ax6.set_xlabel("Price ($)", fontsize=6)
     ax6.set_ylabel("Volume", fontsize=6)
     ax6.tick_params(axis='both', labelsize=6)
