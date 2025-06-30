@@ -415,7 +415,7 @@ with row2[2]:
         labels=df_carbon["Category"],
         colors=colors[:5],
         autopct='%1.1f%%',
-        textprops={'fontsize': 3, 'color': 'black'},
+        textprops={'fontsize': 2, 'color': 'black'},
         wedgeprops=dict(width=0.35)
     )
     for text in texts:
