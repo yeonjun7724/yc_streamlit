@@ -298,30 +298,42 @@ sns.set_theme(style="whitegrid")
 st.set_page_config(layout="wide")
 
 st.markdown("---")
-st.markdown("# 📊 Compact Advanced Data Insights")
+st.markdown("# 📊 Final Safe Dashboard")
 
-# ───────────── 데이터 ─────────────
+# ───────────── 안전한 데이터 ─────────────
 np.random.seed(42)
 
+# Farm Production
 farmers = [f'Farm {chr(65+i)}' for i in range(6)]
 production = np.random.randint(90, 160, size=6)
 
+# Region Indicator
 zones = [f'Region {chr(65+i)}' for i in range(4)]
 region_data = [np.random.normal(100+10*i, 8+2*i, 70) for i in range(4)]
 
+# Seasonal Index
 months = np.arange(1,13)
 seasonal = 60 + 18 * np.sin(np.linspace(0, 2*np.pi, 12)) + np.random.normal(0, 3, 12)
 growth = np.diff(seasonal, prepend=seasonal[0])
 
+# Carbon Emission
 carbon_labels = ['Transport', 'Feed', 'Energy', 'Facility', 'Waste', 'Other']
 carbon_sizes = [30, 25, 20, 10, 10, 5]
 
+# Innovation Correlation
 corr_matrix = np.round(np.random.uniform(0.1, 0.95, size=(6,6)), 2)
 
+# Price vs Volume
 price = np.random.uniform(2000, 9000, 120)
-volume = 35 + 0.02*price + np.random.normal(0, 5, 120)
+volume = 35 + 0.02 * price + np.random.normal(0, 5, 120)
 
-# ───────────── 안전한 3열 레이아웃 ─────────────
+# ✅ Shape & NaN check
+st.write("Price shape:", price.shape)
+st.write("Volume shape:", volume.shape)
+st.write("Any NaN in price?", np.isnan(price).any())
+st.write("Any NaN in volume?", np.isnan(volume).any())
+
+# ───────────── 안전한 3열 ─────────────
 col1, col2, col3 = st.columns(3)
 
 # ───────────── 1) Farm Production ─────────────
@@ -372,7 +384,7 @@ with col3:
     fig.tight_layout(pad=1.0)
     st.pyplot(fig)
 
-# ───────────── 4) Carbon Emission Ratio ─────────────
+# ───────────── 4) Carbon Emission ─────────────
 with col1:
     st.markdown("### ✅ Carbon Emission Ratio")
     fig, ax = plt.subplots(figsize=(3.5, 2.5))
@@ -408,5 +420,4 @@ with col3:
     ax.legend(frameon=False)
     fig.tight_layout(pad=1.0)
     st.pyplot(fig)
-
 
