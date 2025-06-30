@@ -408,7 +408,7 @@ with row2[1]:
 
 with row2[2]:
     st.markdown("##### 6) 탄소배출 계산: 정부 탄소중립 정책 기여도 측정")
-    fig6, ax6 = plt.subplots(figsize=(0.8, 0.8), dpi=1000)  # 극소형 + 선명
+    fig6, ax6 = plt.subplots(figsize=(0.6, 0.6), dpi=1000)  # 극소형 + 선명
     colors = sns.color_palette("Paired")
     wedges, texts, autotexts = ax6.pie(
         df_carbon["Ratio"],
