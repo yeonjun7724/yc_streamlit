@@ -391,7 +391,7 @@ with row2[0]:
 
 with row2[1]:
     st.markdown("#### ✅ Carbon Emission (Donut)")
-    fig5, ax5 = plt.subplots(figsize=(1.2, 1.2), dpi=200)  # ✅ DPI 높여 선명!
+    fig5, ax5 = plt.subplots(figsize=(1.0, 1.0), dpi=500)  # ✅ DPI 높여 선명!
     colors = sns.color_palette("Paired")
     wedges, texts, autotexts = ax5.pie(
         df_carbon["Ratio"],
