@@ -13,13 +13,13 @@ import matplotlib
 import numpy as np
 
 # ───────────── 한글 깨짐 방지 ─────────────
-matplotlib.rc("font", family="Malgun Gothic")  # Windows. Mac은 AppleGothic, Linux는 NanumGothic
+matplotlib.rc("font", family="Malgun Gothic")  # Windows. Mac은 'AppleGothic'
 matplotlib.rc("axes", unicode_minus=False)
 
-# ───────────── Streamlit 페이지 ─────────────
+# ───────────── 와이드 레이아웃 ─────────────
 st.set_page_config(layout="wide")
 
-# ───────────── 상단 로고 + 제목 ─────────────
+# ───────────── 로고 + 제목 ─────────────
 file_path = "./image.jpg"
 with open(file_path, "rb") as f:
     img_bytes = f.read()
@@ -113,33 +113,10 @@ with col1:
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
         # ✅ 현재 KPI
-        current_cols[0].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px;'>현재 소요시간</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(current_total_duration_sec // 60)}<span style='font-size:18px;'>분</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        current_cols[1].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px;'>현재 최단거리</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km, 2)}<span style='font-size:18px;'>km</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        current_cols[2].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px;'>현재 물류비</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(current_total_distance_km*5000):,}<span style='font-size:18px;'>원</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        current_cols[3].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px;'>현재 탄소배출량</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65, 2)}<span style='font-size:18px;'>kg CO₂</span></div>
-            </div>
-        """, unsafe_allow_html=True)
+        current_cols[0].markdown(f"<div style='text-align:center;'>현재 소요시간<br><b>{int(current_total_duration_sec // 60)}분</b></div>", unsafe_allow_html=True)
+        current_cols[1].markdown(f"<div style='text-align:center;'>현재 최단거리<br><b>{round(current_total_distance_km, 2)} km</b></div>", unsafe_allow_html=True)
+        current_cols[2].markdown(f"<div style='text-align:center;'>현재 물류비<br><b>{int(current_total_distance_km*5000):,} 원</b></div>", unsafe_allow_html=True)
+        current_cols[3].markdown(f"<div style='text-align:center;'>현재 탄소배출량<br><b>{round(current_total_distance_km*0.65, 2)} kg CO₂</b></div>", unsafe_allow_html=True)
 
         fg.add_to(m)
         render_map(m)
@@ -147,7 +124,7 @@ with col1:
     except Exception as e:
         st.error(f"[현재 에러] {e}")
 
-# ───────────── 다타소 ─────────────
+# ───────────── 다타소 경로: stop_seq 기반 순차 연결 ─────────────
 with col2:
     st.markdown("#### 다타소(DaTaSo) 도입 후")
     try:
@@ -181,37 +158,10 @@ with col2:
         diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
         diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
 
-        dataso_cols[0].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px;'>다타소 소요시간</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)}<span style='font-size:18px;'>분</span></div>
-                <div style='font-size:12px; color:red;'>↓ {diff_duration} 분</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        dataso_cols[1].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px;'>다타소 최단거리</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)}<span style='font-size:18px;'>km</span></div>
-                <div style='font-size:12px; color:red;'>↓ {diff_distance} km</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        dataso_cols[2].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px;'>다타소 물류비</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,}<span style='font-size:18px;'>원</span></div>
-                <div style='font-size:12px; color:red;'>↓ {diff_cost:,} 원</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        dataso_cols[3].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px;'>다타소 탄소배출량</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)}<span style='font-size:18px;'>kg CO₂</span></div>
-                <div style='font-size:12px; color:red;'>↓ {diff_emission} kg</div>
-            </div>
-        """, unsafe_allow_html=True)
+        dataso_cols[0].markdown(f"<div style='text-align:center;'>다타소 소요시간<br><b>{int(dataso_total_duration_sec // 60)}분</b><br><span style='color:red;'>↓ {diff_duration} 분</span></div>", unsafe_allow_html=True)
+        dataso_cols[1].markdown(f"<div style='text-align:center;'>다타소 최단거리<br><b>{round(dataso_total_distance_km, 2)} km</b><br><span style='color:red;'>↓ {diff_distance} km</span></div>", unsafe_allow_html=True)
+        dataso_cols[2].markdown(f"<div style='text-align:center;'>다타소 물류비<br><b>{int(dataso_total_distance_km*5000):,} 원</b><br><span style='color:red;'>↓ {diff_cost:,} 원</span></div>", unsafe_allow_html=True)
+        dataso_cols[3].markdown(f"<div style='text-align:center;'>다타소 탄소배출량<br><b>{round(dataso_total_distance_km*0.65,2)} kg CO₂</b><br><span style='color:red;'>↓ {diff_emission} kg</span></div>", unsafe_allow_html=True)
 
         fg.add_to(m)
         render_map(m)
@@ -219,64 +169,64 @@ with col2:
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
 
-# ───────────── 정책+그래프 카드 ─────────────
+# ───────────── 정책 7개 카드형 + 샘플 그래프 ─────────────
 st.markdown("---")
 st.markdown("### 📌 정책·활용방안 + 분석 인사이트")
 
-# 샘플 데이터
 months = np.arange(1, 13)
 volumes = np.random.randint(50, 150, size=12)
 prices = np.random.uniform(1000, 5000, 30)
 vols = np.random.uniform(40, 160, 30)
 
-# 카드 레이아웃
+regions = ['권역 A', '권역 B', '권역 C']
+data = [np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)]
+
+farmers = ['농가 A', '농가 B', '농가 C']
+income = np.random.randint(5, 15, size=3)
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("""
-    <div style="background-color:#f9f9f9; padding:15px; border-radius:8px; border-left:5px solid #1f77b4;">
-        <h4 style="margin-top:0;">✅ 계절성 분석</h4>
-        <p style="font-size:15px;">월별 운송량 패턴 분석</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    fig1, ax1 = plt.subplots(figsize=(4, 2.5))
-    ax1.plot(months, volumes, marker='o', color='#1f77b4')
+    st.write("✅ 계절성 분석")
+    fig1, ax1 = plt.subplots(figsize=(4,2.5))
+    ax1.plot(months, volumes, marker='o')
     ax1.set_title("월별 운송량")
-    ax1.set_xlabel("월")
-    ax1.set_ylabel("운송량")
-    ax1.grid(True)
     st.pyplot(fig1)
 
-with col2:
-    st.markdown("""
-    <div style="background-color:#f9f9f9; padding:15px; border-radius:8px; border-left:5px solid #2ca02c;">
-        <h4 style="margin-top:0;">✅ 농촌 상생</h4>
-        <p style="font-size:15px;">농가별 소득 증대</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.write("✅ 실시간 교통정보")
+    fig4, ax4 = plt.subplots(figsize=(4,2.5))
+    ax4.plot(months, np.random.randint(60, 180, size=12))
+    ax4.set_title("도로 혼잡도 시계열")
+    st.pyplot(fig4)
 
-    farmers = ['농가 A', '농가 B', '농가 C']
-    income = np.random.randint(5, 15, size=3)
-    fig2, ax2 = plt.subplots(figsize=(4, 2.5))
-    ax2.bar(farmers, income, color='#2ca02c')
-    ax2.set_title("농가별 소득 증대")
-    ax2.set_ylabel("증대율(%)")
-    ax2.grid(axis='y')
+with col2:
+    st.write("✅ 농촌 상생")
+    fig2, ax2 = plt.subplots(figsize=(4,2.5))
+    ax2.bar(farmers, income)
+    ax2.set_title("농가 소득 증대")
     st.pyplot(fig2)
 
-with col3:
-    st.markdown("""
-    <div style="background-color:#f9f9f9; padding:15px; border-radius:8px; border-left:5px solid #ff7f0e;">
-        <h4 style="margin-top:0;">✅ 시장 동향</h4>
-        <p style="font-size:15px;">가격 변동과 운송량 상관관계</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.write("✅ 지역별 특성")
+    fig5, ax5 = plt.subplots(figsize=(4,2.5))
+    ax5.boxplot(data, labels=regions)
+    ax5.set_title("권역별 수요 변동성")
+    st.pyplot(fig5)
 
-    fig3, ax3 = plt.subplots(figsize=(4, 2.5))
-    ax3.scatter(prices, vols, color='#ff7f0e')
+with col3:
+    st.write("✅ 시장 동향")
+    fig3, ax3 = plt.subplots(figsize=(4,2.5))
+    ax3.scatter(prices, vols)
     ax3.set_title("가격 vs 운송량")
-    ax3.set_xlabel("가격")
-    ax3.set_ylabel("운송량")
-    ax3.grid(True)
     st.pyplot(fig3)
+
+    st.write("✅ 탄소배출 계산")
+    fig6, ax6 = plt.subplots(figsize=(4,2.5))
+    ax6.plot(months, np.random.randint(10, 30, size=12))
+    ax6.set_title("월별 탄소배출량")
+    st.pyplot(fig6)
+
+    st.write("✅ 축산업 혁신")
+    fig7, ax7 = plt.subplots(figsize=(4,2.5))
+    ax7.plot(months, np.random.randint(70, 200, size=12))
+    ax7.set_title("스마트팜 데이터 흐름")
+    st.pyplot(fig7)
