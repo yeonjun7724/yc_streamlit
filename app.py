@@ -409,7 +409,7 @@ with row2[1]:
 with row2[2]:
     st.markdown("##### 6) 탄소배출 계산: 정부 탄소중립 정책 기여도 측정")
 
-    fig6, ax6 = plt.subplots(figsize=(0.6, 0.6), dpi=1200)  # DPI 높게!
+    fig6, ax6 = plt.subplots(figsize=(1.5, 1.5))  # 👉 약간 크게 해서 뭉개짐 방지
     colors = sns.color_palette("Paired")
 
     wedges, texts, autotexts = ax6.pie(
@@ -417,15 +417,16 @@ with row2[2]:
         labels=df_carbon["Category"],
         colors=colors[:5],
         autopct='%1.1f%%',
-        textprops={'fontsize': 2, 'color': 'black'}
-        # wedgeprops 없애서 꽉 찬 원형 파이차트!
+        textprops={'fontsize': 5, 'color': 'black'},
+        startangle=90,  # 시작 각도 살짝 돌리면 균형 좋음
     )
 
     for text in texts:
-        text.set_fontsize(3)
+        text.set_fontsize(5)
         text.set_color('black')
 
-    ax6.set_title("", pad=0)  # 제목 제거 + 공백 최소화
+    ax6.set_title("", pad=0)
     ax6.axis('equal')
 
-    st.pyplot(fig6)
+    # ✅ Streamlit에서 여백 없이 출력
+    st.pyplot(fig6, bbox_inches='tight', pad_inches=0.1)
