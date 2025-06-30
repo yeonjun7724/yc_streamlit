@@ -398,7 +398,7 @@ with row2[1]:
         labels=df_carbon["Category"],
         colors=colors[:5],
         autopct='%1.1f%%',
-        textprops={'fontsize': 4},
+        textprops={'fontsize': 1},
         wedgeprops=dict(width=0.35)
     )
     ax5.set_title("")  # 제목 제거
