@@ -1,7 +1,10 @@
-streamlit
-geopandas
-folium
-shapely
+streamlit>=1.22
+geopandas>=0.12
+shapely>=2.0
+folium>=0.14
 requests
-matplotlib
-numpy
+matplotlib>=3.7
+seaborn>=0.12
+pyproj>=3.5
+fiona>=1.9
+pandas>=1.5
