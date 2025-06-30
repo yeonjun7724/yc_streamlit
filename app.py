@@ -13,15 +13,15 @@ import matplotlib
 import seaborn as sns
 import numpy as np
 
-# ───────────── 한글 깨짐 방지 + 고급 스타일 ─────────────
+# ───────────── 한글 깨짐 방지 ─────────────
 matplotlib.rcParams['font.family'] = 'Malgun Gothic'
 matplotlib.rcParams['axes.unicode_minus'] = False
 sns.set_style("whitegrid")
 
-# ───────────── 와이드 레이아웃 ─────────────
+# ───────────── 페이지 기본 설정 ─────────────
 st.set_page_config(layout="wide")
 
-# ───────────── 로고 ─────────────
+# ───────────── 상단 로고 + 제목 ─────────────
 file_path = "./image.jpg"
 with open(file_path, "rb") as f:
     img_bytes = f.read()
@@ -39,14 +39,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ───────────── 상수 ─────────────
+# ───────────── 지도 데이터 ─────────────
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH = "cb_tobe_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 
-# ───────────── 데이터 ─────────────
 gdf_current = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_dataso = gpd.read_file(TOBE_PATH).to_crs(4326)
 common_ids = sorted(set(gdf_current["sorting_id"]) & set(gdf_dataso["sorting_id"]))
@@ -57,8 +56,6 @@ dataso_grp = gdf_dataso[gdf_dataso["sorting_id"] == selected_id]
 
 current_cols = st.columns(4)
 dataso_cols = st.columns(4)
-
-st.markdown("---")
 
 def render_map(m, height=600):
     html(m.get_root().render(), height=height)
@@ -109,20 +106,17 @@ with col1:
                 style = {"color": color, "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        current_cols[0].markdown(f"<div style='text-align:center;'><div style='font-size:14px;'>현재 소요시간</div><div style='font-size:32px; font-weight:bold;'>{int(current_total_duration_sec // 60)} 분</div></div>", unsafe_allow_html=True)
-        current_cols[1].markdown(f"<div style='text-align:center;'><div style='font-size:14px;'>현재 최단거리</div><div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km, 2)} km</div></div>", unsafe_allow_html=True)
-        current_cols[2].markdown(f"<div style='text-align:center;'><div style='font-size:14px;'>현재 물류비</div><div style='font-size:32px; font-weight:bold;'>{int(current_total_distance_km*5000):,} 원</div></div>", unsafe_allow_html=True)
-        current_cols[3].markdown(f"<div style='text-align:center;'><div style='font-size:14px;'>현재 탄소배출량</div><div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65, 2)} kg CO2</div></div>", unsafe_allow_html=True)
+        current_cols[0].markdown(f"<div style='text-align:center;'>현재 소요시간<br><span style='font-size:32px;'>{int(current_total_duration_sec // 60)} 분</span></div>", unsafe_allow_html=True)
+        current_cols[1].markdown(f"<div style='text-align:center;'>현재 최단거리<br><span style='font-size:32px;'>{round(current_total_distance_km, 2)} km</span></div>", unsafe_allow_html=True)
+        current_cols[2].markdown(f"<div style='text-align:center;'>현재 물류비<br><span style='font-size:32px;'>{int(current_total_distance_km*5000):,} 원</span></div>", unsafe_allow_html=True)
+        current_cols[3].markdown(f"<div style='text-align:center;'>현재 탄소배출량<br><span style='font-size:32px;'>{round(current_total_distance_km*0.65, 2)} kg CO2</span></div>", unsafe_allow_html=True)
 
-        legend_items = "".join([f"<div style='display:flex; align-items:center;'><div style='width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;'></div>농가 {idx+1}</div>" for idx in range(len(c_pts))])
-        legend_html_current = f"""<div style="position: fixed; top: 30px; right: 30px; background: #fff; border:1px solid #ddd; border-radius:8px; box-shadow:2px 2px 8px rgba(0,0,0,0.2); padding:10px 15px; z-index:9999; font-size:13px;">{legend_items}<div style="margin-top:5px;"><i class="fa fa-flag-checkered" style="color:red;"></i> 도축장</div></div>"""
-        m.get_root().html.add_child(folium.Element(legend_html_current))
         fg.add_to(m)
         render_map(m)
     except Exception as e:
         st.error(f"[현재 에러] {e}")
 
-# ───────────── 다타소 ─────────────
+# ───────────── 다타소(DaTaSo) 도입 후 ─────────────
 with col2:
     st.markdown("#### 다타소(DaTaSo) 도입 후")
     try:
@@ -164,67 +158,64 @@ with col2:
         diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
         diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
 
-        dataso_cols[0].markdown(f"<div style='text-align:center;'><div style='font-size:14px;'>다타소(DaTaSo) 이용 시 소요시간</div><div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} 분</div><div style='color:red;'>- {diff_duration} 분</div></div>", unsafe_allow_html=True)
-        dataso_cols[1].markdown(f"<div style='text-align:center;'><div style='font-size:14px;'>다타소(DaTaSo) 이용 시 최단거리</div><div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} km</div><div style='color:red;'>- {diff_distance} km</div></div>", unsafe_allow_html=True)
-        dataso_cols[2].markdown(f"<div style='text-align:center;'><div style='font-size:14px;'>다타소(DaTaSo) 이용 시 물류비</div><div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} 원</div><div style='color:red;'>- {diff_cost:,} 원</div></div>", unsafe_allow_html=True)
-        dataso_cols[3].markdown(f"<div style='text-align:center;'><div style='font-size:14px;'>다타소(DaTaSo) 이용 시 탄소배출량</div><div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65, 2)} kg CO2</div><div style='color:red;'>- {diff_emission} kg CO2</div></div>", unsafe_allow_html=True)
+        dataso_cols[0].markdown(f"<div style='text-align:center;'>다타소(DaTaSo) 이용 시 소요시간<br><span style='font-size:32px;'>{int(dataso_total_duration_sec // 60)} 분</span><br><span style='color:red;'>- {diff_duration} 분</span></div>", unsafe_allow_html=True)
+        dataso_cols[1].markdown(f"<div style='text-align:center;'>다타소(DaTaSo) 이용 시 최단거리<br><span style='font-size:32px;'>{round(dataso_total_distance_km, 2)} km</span><br><span style='color:red;'>- {diff_distance} km</span></div>", unsafe_allow_html=True)
+        dataso_cols[2].markdown(f"<div style='text-align:center;'>다타소(DaTaSo) 이용 시 물류비<br><span style='font-size:32px;'>{int(dataso_total_distance_km*5000):,} 원</span><br><span style='color:red;'>- {diff_cost:,} 원</span></div>", unsafe_allow_html=True)
+        dataso_cols[3].markdown(f"<div style='text-align:center;'>다타소(DaTaSo) 이용 시 탄소배출량<br><span style='font-size:32px;'>{round(dataso_total_distance_km*0.65, 2)} kg CO2</span><br><span style='color:red;'>- {diff_emission} kg CO2</span></div>", unsafe_allow_html=True)
 
-        legend_items = "".join([f"<div style='display:flex; align-items:center;'><div style='width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;'></div>농가 {idx+1}</div>" for idx in range(len(c_pts))])
-        legend_html_dataso = f"""<div style="position: fixed; top: 30px; right: 30px; background: #fff; border:1px solid #ddd; border-radius:8px; box-shadow:2px 2px 8px rgba(0,0,0,0.2); padding:10px 15px; z-index:9999; font-size:13px;">{legend_items}<div style="margin-top:5px;"><i class="fa fa-flag-checkered" style="color:red;"></i> 도축장</div></div>"""
-        m.get_root().html.add_child(folium.Element(legend_html_dataso))
         fg.add_to(m)
         render_map(m)
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
 
-# ───────────── 정책 그래프 ─────────────
+# ───────────── 정책 + 그래프 ─────────────
 st.markdown("---")
-st.markdown("### 📌 정책·활용방안 + 분석 인사이트")
+st.markdown("### 📊 정책별 샘플 그래프")
 
 months = np.arange(1, 13)
-volumes = np.random.randint(50, 150, size=12)
-income = np.random.randint(5, 15, size=3)
-region_data = [np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)]
-prices = np.random.uniform(1000, 5000, 30)
-vols = np.random.uniform(40, 160, 30)
-
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("✅ 계절성 분석")
-    fig1, ax1 = plt.subplots(figsize=(4, 2.5))
-    sns.lineplot(x=months, y=volumes, marker='o', ax=ax1, color="#1f77b4")
-    ax1.set_title("월별 운송량")
+    fig1, ax1 = plt.subplots()
+    sns.lineplot(x=months, y=50 + 20 * np.sin(np.linspace(0, 2*np.pi, 12)), ax=ax1)
+    ax1.set_title("계절성 분석 - 월별 운송량")
     st.pyplot(fig1)
 
     st.markdown("✅ 농촌 상생")
-    fig2, ax2 = plt.subplots(figsize=(4, 2.5))
-    sns.barplot(x=['농가 A', '농가 B', '농가 C'], y=income, ax=ax2, palette="pastel")
-    ax2.set_title("농가 소득 증대")
+    fig2, ax2 = plt.subplots()
+    sns.barplot(x=['농가 A', '농가 B', '농가 C'], y=[100, 120, 80], palette="pastel", ax=ax2)
+    ax2.set_title("농촌 상생 - 농가별 소득")
     st.pyplot(fig2)
 
 with col2:
     st.markdown("✅ 축산업 혁신")
-    fig3, ax3 = plt.subplots(figsize=(4, 2.5))
-    sns.lineplot(x=months, y=np.random.randint(70, 200, 12), marker='o', ax=ax3)
-    ax3.set_title("스마트팜 데이터")
+    data = np.random.rand(5,5)
+    fig3, ax3 = plt.subplots()
+    sns.heatmap(data, annot=True, fmt=".2f", cmap="Blues", ax=ax3)
+    ax3.set_title("축산업 혁신 - 스마트팜 상관")
     st.pyplot(fig3)
 
     st.markdown("✅ 지역별 특성")
-    fig4, ax4 = plt.subplots(figsize=(4, 2.5))
-    ax4.boxplot(region_data, labels=['권역 A', '권역 B', '권역 C'])
-    ax4.set_title("권역별 수요 변동성")
+    fig4, ax4 = plt.subplots()
+    region_data = [np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)]
+    ax4.boxplot(region_data, labels=['권역A', '권역B', '권역C'])
+    ax4.set_title("지역별 특성 - 운송량 분포")
     st.pyplot(fig4)
 
 with col3:
     st.markdown("✅ 탄소배출 계산")
-    fig5, ax5 = plt.subplots(figsize=(4, 2.5))
-    sns.lineplot(x=months, y=np.random.uniform(10, 30, 12), marker='o', ax=ax5)
-    ax5.set_title("월별 탄소배출량")
+    fig5, ax5 = plt.subplots()
+    ax5.pie([30, 40, 30], labels=['운송', '사료', '기타'], autopct='%1.1f%%')
+    ax5.set_title("탄소배출 계산 - 배출원 비중")
     st.pyplot(fig5)
 
     st.markdown("✅ 시장 동향")
-    fig6, ax6 = plt.subplots(figsize=(4, 2.5))
-    sns.scatterplot(x=prices, y=vols, ax=ax6)
-    ax6.set_title("가격 VS 운송량")
+    fig6, ax6 = plt.subplots()
+    price = np.random.uniform(1000, 5000, 50)
+    vol = 50 + 0.02 * price + np.random.normal(0, 5, 50)
+    ax6.scatter(price, vol)
+    ax6.set_title("시장 동향 - 가격 VS 운송량")
+    ax6.set_xlabel("가격")
+    ax6.set_ylabel("운송량")
     st.pyplot(fig6)
