@@ -281,14 +281,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
 
-# ───────────── 글로벌 설정 ─────────────
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['font.size'] = 6
 sns.set_style("whitegrid")
 np.random.seed(123)
 
-# ───────────── 1) Seasonality Data ─────────────
+# ───────────── Dummy Data ─────────────
 months = np.tile(np.arange(1, 13), 50)
 season_shipments = []
 for m in range(1, 13):
@@ -298,7 +297,6 @@ for m in range(1, 13):
         season_shipments.append({"Month": m, "Shipment": v})
 df_season = pd.DataFrame(season_shipments)
 
-# ───────────── 2) Farming Revenue ─────────────
 farms = [f"Farm {chr(65+i)}" for i in range(10)]
 farm_revenues = []
 for farm in farms:
@@ -307,14 +305,12 @@ for farm in farms:
         farm_revenues.append({"Farm": farm, "Revenue": val})
 df_farm = pd.DataFrame(farm_revenues)
 
-# ───────────── 3) Innovation Heatmap ─────────────
 df_heat = pd.DataFrame(
     np.round(np.random.rand(20, 20) * 100, 1),
     columns=[f"V{i+1}" for i in range(20)],
     index=[f"S{i+1}" for i in range(20)]
 )
 
-# ───────────── 4) Regional Production ─────────────
 regions = ["Region A", "Region B", "Region C"]
 region_production = []
 for region in regions:
@@ -328,22 +324,19 @@ for region in regions:
         region_production.append({"Region": region, "Production": val})
 df_region = pd.DataFrame(region_production)
 
-# ───────────── 5) Carbon Pie ─────────────
 df_carbon = pd.DataFrame({
     "Category": ["Transport", "Feed", "Processing", "Waste", "Others"],
     "Ratio": [0.4, 0.25, 0.15, 0.1, 0.1]
 })
 
-# ───────────── 6) Market Scatter ─────────────
 prices = np.random.uniform(1000, 20000, 200)
 volumes = 100 + 0.02 * prices + np.random.normal(0, 10, 200)
 df_market = pd.DataFrame({"Price": prices, "Volume": volumes})
 
-# ───────────── Streamlit ─────────────
+# ───────────── Streamlit Layout ─────────────
 st.markdown("---")
-st.markdown("### 📊 Final Seaborn Graphs (3 per row, same heights, small fonts)")
+st.markdown("### 📊 Final Seaborn Graphs (Perfectly aligned, gap large)")
 
-# ───────────── 첫 번째 줄 ─────────────
 row1 = st.columns(3, gap="large")
 
 with row1[0]:
@@ -360,7 +353,7 @@ with row1[0]:
 
 with row1[1]:
     st.markdown("#### ✅ Farming Revenue")
-    fig2, ax2 = plt.subplots(figsize=(6, 3))  # 높이 키움
+    fig2, ax2 = plt.subplots(figsize=(6, 3.5))  # 높이 더 늘림
     sns.boxplot(data=df_farm, x="Farm", y="Revenue",
                 palette="Paired", ax=ax2)
     sns.stripplot(data=df_farm, x="Farm", y="Revenue",
@@ -381,7 +374,6 @@ with row1[2]:
     ax3.tick_params(axis='both', labelsize=6)
     st.pyplot(fig3)
 
-# ───────────── 두 번째 줄 ─────────────
 row2 = st.columns(3, gap="large")
 
 with row2[0]:
@@ -399,15 +391,15 @@ with row2[0]:
 
 with row2[1]:
     st.markdown("#### ✅ Carbon Emission (Donut)")
-    fig5, ax5 = plt.subplots(figsize=(2.5, 2))  # 더 작게
+    fig5, ax5 = plt.subplots(figsize=(2, 1.8))  # 더 작게
     colors = sns.color_palette("Paired")
     wedges, texts, autotexts = ax5.pie(df_carbon["Ratio"],
                                        labels=df_carbon["Category"],
                                        colors=colors[:5],
                                        autopct='%1.1f%%',
                                        textprops={'fontsize': 4},
-                                       wedgeprops=dict(width=0.35))  # 도넛형
-    ax5.set_title("Carbon Emission Breakdown", fontsize=6)
+                                       wedgeprops=dict(width=0.35))
+    ax5.set_title("")  # 제목 제거
     st.pyplot(fig5)
 
 with row2[2]:
