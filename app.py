@@ -8,25 +8,19 @@ from folium import Map, FeatureGroup, GeoJson
 from folium.features import DivIcon
 from streamlit.components.v1 import html
 
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
+# ───────────── Mapbox 토큰 ─────────────
+MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 
-# ───────────── 기본 설정 ─────────────
-plt.rcParams['font.family'] = 'Arial'
-plt.rcParams['axes.unicode_minus'] = False
-plt.rcParams['font.size'] = 6
-sns.set_style("whitegrid")
-np.random.seed(123)
+# ───────────── 와이드 레이아웃 ─────────────
 st.set_page_config(layout="wide")
 
-# ───────────── 상단 로고 + 제목 ─────────────
+# ───────────── Base64 이미지 인코딩 ─────────────
 file_path = "./image.jpg"
 with open(file_path, "rb") as f:
     img_bytes = f.read()
 encoded = base64.b64encode(img_bytes).decode()
 
+# ───────────── 상단 로고 + 제목 ─────────────
 st.markdown(
     f"""
     <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
@@ -39,13 +33,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ───────────── Mapbox & 데이터 ─────────────
-MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
+# ───────────── 상수 ─────────────
 ASIS_PATH = "cb_tobe_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 
+# ───────────── 데이터 로드 ─────────────
 gdf_current = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_dataso = gpd.read_file(TOBE_PATH).to_crs(4326)
 
@@ -140,6 +134,34 @@ with col1:
             </div>
         """, unsafe_allow_html=True)
 
+        # ✅ 현재 범례 복원
+        legend_items = ""
+        for idx in range(len(c_pts)):
+            legend_items += f"""
+                <div style="display:flex; align-items:center; margin-bottom:5px;">
+                    <div style="width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;"></div>
+                    농가 {idx+1}
+                </div>
+            """
+        legend_html_current = f"""
+        <div style="
+            position: fixed; 
+            top: 30px; right: 30px; 
+            background-color: white; 
+            border: 1px solid #ddd; 
+            border-radius: 8px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+            padding: 10px 15px; 
+            z-index:9999; 
+            font-size: 13px;">
+            {legend_items}
+            <div style="display:flex; align-items:center; margin-top:5px;">
+                <i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장
+            </div>
+        </div>
+        """
+        m.get_root().html.add_child(folium.Element(legend_html_current))
+
         fg.add_to(m)
         render_map(m)
 
@@ -183,7 +205,6 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ✅ 차이값 + 퍼센트
         diff_duration = int((current_total_duration_sec - dataso_total_duration_sec) // 60)
         diff_distance = round(current_total_distance_km - dataso_total_distance_km, 2)
         diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
@@ -194,7 +215,6 @@ with col2:
         diff_cost_pct = round((diff_cost / (current_total_distance_km * 5000) * 100), 1) if current_total_distance_km != 0 else 0
         diff_emission_pct = round((diff_emission / (current_total_distance_km * 0.65) * 100), 1) if current_total_distance_km != 0 else 0
 
-        # ✅ 다타소 KPI (퍼센트 포함)
         dataso_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
@@ -226,6 +246,34 @@ with col2:
                 <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_emission} kg CO2 ({diff_emission_pct}%)</div>
             </div>
         """, unsafe_allow_html=True)
+
+        # ✅ 다타소 범례 복원
+        legend_items = ""
+        for idx in range(len(c_pts)):
+            legend_items += f"""
+                <div style="display:flex; align-items:center; margin-bottom:5px;">
+                    <div style="width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;"></div>
+                    농가 {idx+1}
+                </div>
+            """
+        legend_html_dataso = f"""
+        <div style="
+            position: fixed; 
+            top: 30px; right: 30px; 
+            background-color: white; 
+            border: 1px solid #ddd; 
+            border-radius: 8px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+            padding: 10px 15px; 
+            z-index:9999; 
+            font-size: 13px;">
+            {legend_items}
+            <div style="display:flex; align-items:center; margin-top:5px;">
+                <i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장
+            </div>
+        </div>
+        """
+        m.get_root().html.add_child(folium.Element(legend_html_dataso))
 
         fg.add_to(m)
         render_map(m)
