@@ -46,33 +46,6 @@ TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 
-# ───────────── 범례 ─────────────
-legend_html = """
- <div style="
- position: fixed; 
- top: 20px; right: 20px; width: 90px; height: auto; 
- background: rgba(255, 255, 255, 0.95);
- border-radius: 5px; 
- box-shadow: 0 2px 6px rgba(0,0,0,0.1); 
- z-index: 9999; 
- font-size: 12px; 
- padding: 6px 8px; 
- line-height: 1.4;">
- <div style="display: flex; align-items: center; margin-bottom: 4px;">
-   <span style="background: #1f77b4; width: 10px; height: 10px; display: inline-block; margin-right: 4px; border-radius: 2px;"></span> 농가 1
- </div>
- <div style="display: flex; align-items: center; margin-bottom: 4px;">
-   <span style="background: #ff7f0e; width: 10px; height: 10px; display: inline-block; margin-right: 4px; border-radius: 2px;"></span> 농가 2
- </div>
- <div style="display: flex; align-items: center; margin-bottom: 4px;">
-   <span style="background: #2ca02c; width: 10px; height: 10px; display: inline-block; margin-right: 4px; border-radius: 2px;"></span> 농가 3
- </div>
- <div style="display: flex; align-items: center;">
-   <i class="fa fa-flag-checkered" style="color:red; margin-right: 4px;"></i> 도축장
- </div>
- </div>
-"""
-
 # ───────────── 데이터 ─────────────
 gdf_current = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_dataso = gpd.read_file(TOBE_PATH).to_crs(4326)
@@ -160,7 +133,6 @@ with col1:
         """, unsafe_allow_html=True)
 
         fg.add_to(m)
-        m.get_root().html.add_child(folium.Element(legend_html))
         render_map(m)
     except Exception as e:
         st.error(f"[현재 에러] {e}")
@@ -237,88 +209,50 @@ with col2:
         """, unsafe_allow_html=True)
 
         fg.add_to(m)
-        m.get_root().html.add_child(folium.Element(legend_html))
         render_map(m)
     except Exception as e:
         st.error(f"[다타소 에러] {e}")
 
 # ───────────── 정책 그래프 (한글 깨짐 포함) ─────────────
-
-# ───────────── 가로-세로 정렬, 간격 조정 ─────────────
-# ───────────── 한글 깨짐 방지 ─────────────
-# ✅ OS별 안전한 기본 폰트 설정
-try:
-    matplotlib.rcParams['font.family'] = 'NanumGothic'
-except:
-    st.warning("⚠️ 일부 환경에서는 그래프 한글이 깨질 수 있습니다.\n"
-               "👉 해결: NanumGothic 폰트 설치 필요 (또는 matplotlib.rcParams 수동 설정)")
-
-matplotlib.rcParams['axes.unicode_minus'] = False
-sns.set_theme(style="whitegrid")
-
-# ───────────── 가로-세로 정렬, 간격 조정 ─────────────
 st.markdown("---")
 st.markdown("### 📊 정책별 샘플 그래프")
 
-# 전체 그리드를 2행 3열로 배치
-row1_col1, row1_col2, row1_col3 = st.columns([1, 1, 1], gap="large")
-row2_col1, row2_col2, row2_col3 = st.columns([1, 1, 1], gap="large")
-
+col1, col2, col3 = st.columns(3)
 months = np.arange(1, 13)
 
-# 1️⃣ 계절성 분석 (라인플롯)
-with row1_col1:
+with col1:
     st.markdown("### ✅ 계절성 분석")
-    fig, ax = plt.subplots(figsize=(4, 3))
-    sns.lineplot(x=months, y=50 + 20 * np.sin(np.linspace(0, 2*np.pi, 12)),
-                 marker='o', linewidth=2.5, color="#1f77b4", ax=ax)
-    ax.set_xlabel("월")
-    ax.set_ylabel("수치")
-    st.pyplot(fig, use_container_width=True)
+    fig1, ax1 = plt.subplots()
+    sns.lineplot(x=months, y=50 + 20 * np.sin(np.linspace(0, 2*np.pi, 12)), marker='o', ax=ax1)
+    st.pyplot(fig1)
 
-# 2️⃣ 축산업 혁신 (히트맵)
-with row1_col2:
-    st.markdown("### ✅ 축산업 혁신")
-    fig, ax = plt.subplots(figsize=(4, 3))
-    data = np.random.rand(5, 5)
-    sns.heatmap(data, annot=True, fmt=".2f", cmap="Blues", cbar=True, ax=ax)
-    st.pyplot(fig, use_container_width=True)
-
-# 3️⃣ 탄소배출 계산 (파이차트)
-with row1_col3:
-    st.markdown("### ✅ 탄소배출 계산")
-    fig, ax = plt.subplots(figsize=(4, 3))
-    ax.pie([30, 40, 30], labels=['운송', '사료', '기타'], autopct='%1.1f%%',
-           colors=sns.color_palette("pastel"))
-    st.pyplot(fig, use_container_width=True)
-
-# 4️⃣ 농촌 상생 (바플롯)
-with row2_col1:
     st.markdown("### ✅ 농촌 상생")
-    fig, ax = plt.subplots(figsize=(4, 3))
-    sns.barplot(x=['농가 A', '농가 B', '농가 C'],
-                y=[100, 120, 80], palette="Set2", ax=ax)
-    ax.set_ylabel("지원 규모")
-    st.pyplot(fig, use_container_width=True)
+    fig2, ax2 = plt.subplots()
+    sns.barplot(x=['농가 A', '농가 B', '농가 C'], y=[100, 120, 80], palette="pastel", ax=ax2)
+    st.pyplot(fig2)
 
-# 5️⃣ 지역별 특성 (박스플롯)
-with row2_col2:
+with col2:
+    st.markdown("### ✅ 축산업 혁신")
+    fig3, ax3 = plt.subplots()
+    sns.heatmap(np.random.rand(5, 5), annot=True, fmt=".2f", cmap="Blues", ax=ax3)
+    st.pyplot(fig3)
+
     st.markdown("### ✅ 지역별 특성")
-    fig, ax = plt.subplots(figsize=(4, 3))
-    ax.boxplot([np.random.normal(100, 15, 50),
-                np.random.normal(120, 20, 50),
-                np.random.normal(90, 10, 50)],
-               labels=['권역 A', '권역 B', '권역 C'])
-    ax.set_ylabel("값")
-    st.pyplot(fig, use_container_width=True)
+    fig4, ax4 = plt.subplots()
+    ax4.boxplot([np.random.normal(100, 15, 50), np.random.normal(120, 20, 50), np.random.normal(90, 10, 50)], labels=['권역 A', '권역 B', '권역 C'])
+    st.pyplot(fig4)
 
-# 6️⃣ 시장 동향 (산점도)
-with row2_col3:
+with col3:
+    st.markdown("### ✅ 탄소배출 계산")
+    fig5, ax5 = plt.subplots()
+    ax5.pie([30, 40, 30], labels=['운송', '사료', '기타'], autopct='%1.1f%%')
+    st.pyplot(fig5)
+
     st.markdown("### ✅ 시장 동향")
-    fig, ax = plt.subplots(figsize=(4, 3))
+    fig6, ax6 = plt.subplots()
     price = np.random.uniform(1000, 5000, 50)
     vol = 50 + 0.02 * price + np.random.normal(0, 5, 50)
-    ax.scatter(price, vol, color="#2ca02c", alpha=0.7)
-    ax.set_xlabel("가격")
-    ax.set_ylabel("거래량")
-    st.pyplot(fig, use_container_width=True)
+    ax6.scatter(price, vol)
+    st.pyplot(fig6)
+
+코드 기억해줄래?
