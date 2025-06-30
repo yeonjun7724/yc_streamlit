@@ -351,7 +351,7 @@ with row1[0]:
     st.pyplot(fig1)
 
 with row1[1]:
-    st.markdown("##### 지역별 특성: 권역별 운송 수요 변동성 예측")
+    st.markdown("##### 농가별 특성: 농가별 운송 수요 변동성 예측")
     fig2, ax2 = plt.subplots(figsize=(6, 3.5))  # 높이 더 늘림
     sns.boxplot(data=df_farm, x="Farm", y="Revenue",
                 palette="Paired", ax=ax2)
