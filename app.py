@@ -408,8 +408,10 @@ with row2[1]:
 
 with row2[2]:
     st.markdown("##### 6) 탄소배출 계산: 정부 탄소중립 정책 기여도 측정")
-    fig6, ax6 = plt.subplots(figsize=(0.6, 0.6), dpi=1000)  # 극소형 + 선명
+
+    fig6, ax6 = plt.subplots(figsize=(0.6, 0.6), dpi=1500)  # DPI 극대화!
     colors = sns.color_palette("Paired")
+
     wedges, texts, autotexts = ax6.pie(
         df_carbon["Ratio"],
         labels=df_carbon["Category"],
@@ -418,9 +420,15 @@ with row2[2]:
         textprops={'fontsize': 2, 'color': 'black'},
         wedgeprops=dict(width=0.35)
     )
+
     for text in texts:
         text.set_fontsize(3)
         text.set_color('black')
-    ax6.set_title("")
-    st.pyplot(fig6)
 
+    # ✅ 제목 제거 + pad로 공백 줄이기
+    ax6.set_title("", pad=0)  # 제목 없음, pad=0이면 위쪽 여백 최소화
+
+    # ✅ 축 제거
+    ax6.axis('equal')
+
+    st.pyplot(fig6)
