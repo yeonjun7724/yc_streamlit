@@ -8,16 +8,25 @@ from folium import Map, FeatureGroup, GeoJson
 from folium.features import DivIcon
 from streamlit.components.v1 import html
 
-# ───────────── 와이드 레이아웃 ─────────────
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# ───────────── 기본 설정 ─────────────
+plt.rcParams['font.family'] = 'Arial'
+plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['font.size'] = 6
+sns.set_style("whitegrid")
+np.random.seed(123)
 st.set_page_config(layout="wide")
 
-# ───────────── Base64 이미지 인코딩 ─────────────
+# ───────────── 상단 로고 + 제목 ─────────────
 file_path = "./image.jpg"
 with open(file_path, "rb") as f:
     img_bytes = f.read()
 encoded = base64.b64encode(img_bytes).decode()
 
-# ───────────── 상단 로고 + 제목 ─────────────
 st.markdown(
     f"""
     <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
@@ -30,14 +39,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ───────────── 상수 ─────────────
+# ───────────── Mapbox & 데이터 ─────────────
 MAPBOX_TOKEN = "pk.eyJ1Ijoia2lteWVvbmp1biIsImEiOiJjbWM5cTV2MXkxdnJ5MmlzM3N1dDVydWwxIn0.rAH4bQmtA-MmEuFwRLx32Q"
 ASIS_PATH = "cb_tobe_sample.shp"
 TOBE_PATH = "cb_tobe_sample.shp"
 COMMON_TILE = "CartoDB positron"
 palette = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 
-# ───────────── 데이터 로드 ─────────────
 gdf_current = gpd.read_file(ASIS_PATH).to_crs(4326)
 gdf_dataso = gpd.read_file(TOBE_PATH).to_crs(4326)
 
@@ -49,8 +57,6 @@ dataso_grp = gdf_dataso[gdf_dataso["sorting_id"] == selected_id]
 
 current_cols = st.columns(4)
 dataso_cols = st.columns(4)
-
-st.markdown("---")
 
 def render_map(m, height=600):
     html(m.get_root().render(), height=height)
@@ -105,11 +111,34 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ✅ 현재 KPI 출력
-        current_cols[0].markdown(f"**현재 소요시간:** {int(current_total_duration_sec // 60)} 분")
-        current_cols[1].markdown(f"**현재 최단거리:** {round(current_total_distance_km, 2)} km")
-        current_cols[2].markdown(f"**현재 물류비:** {int(current_total_distance_km*5000):,} 원")
-        current_cols[3].markdown(f"**현재 탄소배출량:** {round(current_total_distance_km*0.65, 2)} kg CO2")
+        # ✅ 현재 KPI (원본 구조 유지)
+        current_cols[0].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 소요시간</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(current_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        current_cols[1].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 최단거리</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        current_cols[2].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 물류비</div>
+                <div style='font-size:32px; font-weight:bold;'>{int(current_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        current_cols[3].markdown(f"""
+            <div style='text-align:center;'>
+                <div style='font-size:14px; margin-bottom:4px;'>현재 탄소배출량</div>
+                <div style='font-size:32px; font-weight:bold;'>{round(current_total_distance_km*0.65, 2)} <span style='font-size:18px;'>kg CO2</span></div>
+            </div>
+        """, unsafe_allow_html=True)
 
         fg.add_to(m)
         render_map(m)
@@ -154,7 +183,7 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ✅ 차이값 + 퍼센트 계산
+        # ✅ 차이값 + 퍼센트
         diff_duration = int((current_total_duration_sec - dataso_total_duration_sec) // 60)
         diff_distance = round(current_total_distance_km - dataso_total_distance_km, 2)
         diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
@@ -165,14 +194,12 @@ with col2:
         diff_cost_pct = round((diff_cost / (current_total_distance_km * 5000) * 100), 1) if current_total_distance_km != 0 else 0
         diff_emission_pct = round((diff_emission / (current_total_distance_km * 0.65) * 100), 1) if current_total_distance_km != 0 else 0
 
-        # ✅ KPI 출력 with 퍼센트 표시
+        # ✅ 다타소 KPI (퍼센트 포함)
         dataso_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
                 <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
-                    - {diff_duration} 분 <span style='margin-left:4px;'>({diff_duration_pct}%)</span>
-                </div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_duration} 분 ({diff_duration_pct}%)</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -180,9 +207,7 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 최단거리</div>
                 <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
-                    - {diff_distance} km <span style='margin-left:4px;'>({diff_distance_pct}%)</span>
-                </div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_distance} km ({diff_distance_pct}%)</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -190,9 +215,7 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 물류비</div>
                 <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
-                    - {diff_cost:,} 원 <span style='margin-left:4px;'>({diff_cost_pct}%)</span>
-                </div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_cost:,} 원 ({diff_cost_pct}%)</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -200,9 +223,7 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 탄소배출량</div>
                 <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
-                    - {diff_emission} kg CO2 <span style='margin-left:4px;'>({diff_emission_pct}%)</span>
-                </div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_emission} kg CO2 ({diff_emission_pct}%)</div>
             </div>
         """, unsafe_allow_html=True)
 
