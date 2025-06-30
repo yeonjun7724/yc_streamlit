@@ -105,90 +105,11 @@ with col1:
 
             GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
-        # ✅ 현재 KPI 출력 (다타소와 동일 스타일)
-        # ✅ 차이값
-        diff_duration = int((current_total_duration_sec - dataso_total_duration_sec) // 60)
-        diff_distance = round(current_total_distance_km - dataso_total_distance_km, 2)
-        diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
-        diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
-        
-        # ✅ 퍼센트값 (분모가 0일 경우 대비)
-        diff_duration_pct = round((diff_duration / (current_total_duration_sec // 60) * 100), 1) if current_total_duration_sec != 0 else 0
-        diff_distance_pct = round((diff_distance / current_total_distance_km * 100), 1) if current_total_distance_km != 0 else 0
-        diff_cost_pct = round((diff_cost / (current_total_distance_km * 5000) * 100), 1) if current_total_distance_km != 0 else 0
-        diff_emission_pct = round((diff_emission / (current_total_distance_km * 0.65) * 100), 1) if current_total_distance_km != 0 else 0
-        
-        # ✅ 소요시간 KPI
-        dataso_cols[0].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
-                    - {diff_duration} 분 <span style='margin-left:4px;'>({diff_duration_pct}%)</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # ✅ 최단거리 KPI
-        dataso_cols[1].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 최단거리</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
-                    - {diff_distance} km <span style='margin-left:4px;'>({diff_distance_pct}%)</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # ✅ 물류비 KPI
-        dataso_cols[2].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 물류비</div>
-                <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
-                    - {diff_cost:,} 원 <span style='margin-left:4px;'>({diff_cost_pct}%)</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # ✅ 탄소배출량 KPI
-        dataso_cols[3].markdown(f"""
-            <div style='text-align:center;'>
-                <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 탄소배출량</div>
-                <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
-                    - {diff_emission} kg CO2 <span style='margin-left:4px;'>({diff_emission_pct}%)</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        # ✅ 현재 지도 범례 (범례 타이틀 제거)
-        legend_items = ""
-        for idx in range(len(c_pts)):
-            legend_items += f"""
-                <div style="display:flex; align-items:center; margin-bottom:5px;">
-                    <div style="width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;"></div>
-                    농가 {idx+1}
-                </div>
-            """
-        legend_html_current = f"""
-        <div style="
-            position: fixed; 
-            top: 30px; right: 30px; 
-            background-color: white; 
-            border: 1px solid #ddd; 
-            border-radius: 8px;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-            padding: 10px 15px; 
-            z-index:9999; 
-            font-size: 13px;">
-            {legend_items}
-            <div style="display:flex; align-items:center; margin-top:5px;">
-                <i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장
-            </div>
-        </div>
-        """
-        m.get_root().html.add_child(folium.Element(legend_html_current))
+        # ✅ 현재 KPI 출력
+        current_cols[0].markdown(f"**현재 소요시간:** {int(current_total_duration_sec // 60)} 분")
+        current_cols[1].markdown(f"**현재 최단거리:** {round(current_total_distance_km, 2)} km")
+        current_cols[2].markdown(f"**현재 물류비:** {int(current_total_distance_km*5000):,} 원")
+        current_cols[3].markdown(f"**현재 탄소배출량:** {round(current_total_distance_km*0.65, 2)} kg CO2")
 
         fg.add_to(m)
         render_map(m)
@@ -233,16 +154,25 @@ with col2:
                 style = {"color": palette[i % len(palette)], "weight": 5}
                 GeoJson(line, style_function=lambda _, s=style: s).add_to(fg)
 
+        # ✅ 차이값 + 퍼센트 계산
         diff_duration = int((current_total_duration_sec - dataso_total_duration_sec) // 60)
         diff_distance = round(current_total_distance_km - dataso_total_distance_km, 2)
-        diff_cost     = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
+        diff_cost = int((current_total_distance_km * 5000) - (dataso_total_distance_km * 5000))
         diff_emission = round((current_total_distance_km * 0.65) - (dataso_total_distance_km * 0.65), 2)
 
+        diff_duration_pct = round((diff_duration / (current_total_duration_sec // 60) * 100), 1) if current_total_duration_sec != 0 else 0
+        diff_distance_pct = round((diff_distance / current_total_distance_km * 100), 1) if current_total_distance_km != 0 else 0
+        diff_cost_pct = round((diff_cost / (current_total_distance_km * 5000) * 100), 1) if current_total_distance_km != 0 else 0
+        diff_emission_pct = round((diff_emission / (current_total_distance_km * 0.65) * 100), 1) if current_total_distance_km != 0 else 0
+
+        # ✅ KPI 출력 with 퍼센트 표시
         dataso_cols[0].markdown(f"""
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 소요시간</div>
                 <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_duration_sec // 60)} <span style='font-size:18px;'>분</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_duration} 분</div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
+                    - {diff_duration} 분 <span style='margin-left:4px;'>({diff_duration_pct}%)</span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -250,7 +180,9 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 최단거리</div>
                 <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km, 2)} <span style='font-size:18px;'>km</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_distance} km</div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
+                    - {diff_distance} km <span style='margin-left:4px;'>({diff_distance_pct}%)</span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -258,7 +190,9 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 물류비</div>
                 <div style='font-size:32px; font-weight:bold;'>{int(dataso_total_distance_km*5000):,} <span style='font-size:18px;'>원</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_cost:,} 원</div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
+                    - {diff_cost:,} 원 <span style='margin-left:4px;'>({diff_cost_pct}%)</span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -266,36 +200,11 @@ with col2:
             <div style='text-align:center;'>
                 <div style='font-size:14px; margin-bottom:4px;'>다타소(DaTaSo) 이용 시 탄소배출량</div>
                 <div style='font-size:32px; font-weight:bold;'>{round(dataso_total_distance_km*0.65,2)} <span style='font-size:18px;'>kg CO2</span></div>
-                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>- {diff_emission} kg CO2</div>
+                <div style='font-size:14px; color:red; font-weight:bold; margin-top:4px;'>
+                    - {diff_emission} kg CO2 <span style='margin-left:4px;'>({diff_emission_pct}%)</span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
-
-        legend_items = ""
-        for idx in range(len(c_pts)):
-            legend_items += f"""
-                <div style="display:flex; align-items:center; margin-bottom:5px;">
-                    <div style="width:20px;height:20px;background:{palette[idx % len(palette)]}; border-radius:50%; margin-right:6px;"></div>
-                    농가 {idx+1}
-                </div>
-            """
-        legend_html_dataso = f"""
-        <div style="
-            position: fixed; 
-            top: 30px; right: 30px; 
-            background-color: white; 
-            border: 1px solid #ddd; 
-            border-radius: 8px;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-            padding: 10px 15px; 
-            z-index:9999; 
-            font-size: 13px;">
-            {legend_items}
-            <div style="display:flex; align-items:center; margin-top:5px;">
-                <i class="fa fa-flag-checkered" style="color:red;margin-right:6px;"></i> 도축장
-            </div>
-        </div>
-        """
-        m.get_root().html.add_child(folium.Element(legend_html_dataso))
 
         fg.add_to(m)
         render_map(m)
